@@ -1,0 +1,32 @@
+# Output of go coverage tool and binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE files (e.g., IntelliJ, Visual Studio Code)
+.idea/
+.vscode/
+
+# OS-generated files (e.g., macOS, Windows)
+.DS_Store
+Thumbs.db
+
+# Build outputs
+bin/
+dist/
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# OSX leaves these everywhere on SMB shares
+._*
+
+# Developers can store local stuff in dirs named __something
+__*
+

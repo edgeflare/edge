@@ -1,0 +1,54 @@
+<mat-toolbar>Installed applications</mat-toolbar>
+
+<div class="m-4 flex justify-end">
+  <button mat-flat-button color="primary" class="btn-lg rounded-none w-32" routerLink="/catalog">
+    <mat-icon>add</mat-icon>
+    <span>APP</span>
+  </button>
+</div>
+
+<section class="pb-32">
+  @if (!isLoading) {
+  <e-expandable-table [data]="cattleHelmCharts" [columns]="columns" [cellDefs]="cellDefs"
+    [expandedDetailContent]="customDetailTemplate" (currentRowChanged)="handleRowChange($event)">
+  </e-expandable-table>
+  }
+
+  <ng-template #customDetailTemplate let-rowData>
+    @if (rowData) {
+    <div class="element-description">
+      <div class="flex flex-wrap gap-4 p-2">
+        <button mat-raised-button class="btn-lg text-lg rounded-none" color="primary"
+          (click)="navigateToInstance(rowData)" [disabled]="!rowData.spec.repo">
+          <mat-icon>dns</mat-icon>
+          <span>Installed Resources</span>
+        </button>
+        <button mat-raised-button class="btn-lg text-lg rounded-none" color="primary" (click)="toggleDetails()">
+          <mat-icon>data_object</mat-icon>
+          <span>Details</span>
+        </button>
+        <button mat-raised-button class="btn-lg text-lg rounded-none" color="accent"
+          (click)="navigateToInstance(rowData, true)" [disabled]="!rowData.spec.repo">
+          <mat-icon>update</mat-icon>
+          <span>Upgrade</span>
+        </button>
+        <button mat-raised-button class="btn-lg text-lg rounded-none" color="warn"
+          (click)="openConfirmDeleteDialog(rowData)" [disabled]="!rowData.spec.repo">
+          <mat-icon>delete</mat-icon>
+          <span>Delete</span>
+        </button>
+      </div>
+
+      @if (isShowDetails) {
+      <e-editor [inputText]="rowData | yaml" [mode]="'yaml'" [isReadOnly]="true"></e-editor>
+      }
+    </div>
+    }
+  </ng-template>
+
+  @if (isLoading) {
+  <div class="spinner" style="height: 50vh;">
+    <mat-spinner></mat-spinner>
+  </div>
+  }
+</section>

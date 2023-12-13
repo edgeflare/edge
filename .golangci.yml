@@ -1,0 +1,72 @@
+linters-settings:
+  # Setting up gofmt to ensure code follows the standard Go formatting.
+  gofmt:
+    simplify: true
+  
+  # Configuring gocritic for various checks.
+  gocritic:
+    enabled-checks:
+      - rangeValCopy
+      - wrapperFunc
+      - unlambda
+      - appendCombine
+      - dupSubExpr
+
+  # Configuring golint for code style recommendations.
+  golint:
+    min-confidence: 0.8
+
+  # Configuring gocyclo to check for complex functions.
+  gocyclo:
+    min-complexity: 16
+
+  # Configuring govet for correctness, like shadowed variables.
+  govet:
+    check-shadowing: true
+    enable-all: true
+
+  # Enabling errcheck to ensure all errors are checked.
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  # Configuring staticcheck for performance and correctness.
+  staticcheck:
+    checks:
+      - all
+      - "-ST1000" # Exclude certain checks if necessary
+
+revive:
+  severity: warning
+  confidence: 0.8
+  rules:
+    - name: exported
+    - name: var-naming
+linters:
+  enable:
+    - gofmt
+    - gocritic
+    - revive
+    - gocyclo
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+  disable:
+    - structcheck
+    - varcheck
+
+# General linting settings.
+run:
+  deadline: 5m
+  skip-dirs:
+    - vendor
+  build-tags:
+    - my_build_tag
+  modules-download-mode: readonly
+
+issues:
+  exclude-rules:
+    - linters:
+        - typecheck
+      path: ui/embed.go

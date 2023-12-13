@@ -1,0 +1,16 @@
+<div class="w-full py-4 px-2">
+  <p class="text-lg px-6">Type {{ itemType }} name, <b><code>{{ itemName }}</code></b>, to confirm deletion</p>
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" class="w-full">
+      <input matInput [(ngModel)]="inputName">
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <div class="mr-4">
+    <mat-dialog-actions align="end" class="mb-2">
+      <button mat-stroked-button color="primary" class="rounded-none" mat-dialog-close>Cancel</button>
+      <button mat-raised-button color="warn" class="rounded-none" [disabled]="inputName !== itemName"
+        (click)="confirmDelete()">Confirm</button>
+    </mat-dialog-actions>
+  </div>
+</div>

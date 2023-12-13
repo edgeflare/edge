@@ -1,0 +1,61 @@
+<mat-sidenav-container class="h-100vh">
+  <mat-sidenav #drawer class="sidenav" fixedInViewport [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
+    [mode]="(isHandset$ | async) ? 'over' : 'side'" [opened]="(isHandset$ | async) === false">
+    <mat-toolbar class="bg-primary">
+      <span class="flex-grow flex-shrink basis-auto"></span>
+      @if (isHandset$ | async) {
+      <button mat-icon-button (click)="drawer.toggle()">
+        <mat-icon color="accent">close</mat-icon>
+      </button>
+      }
+    </mat-toolbar>
+    <mat-nav-list>
+      @for (route of routes; track route) {
+      <a mat-list-item [routerLink]="route.path">
+        <div style="display: flex; align-items: center;">
+          <mat-icon>{{ route.icon }}</mat-icon> &nbsp;
+          <span>{{ route.name }}</span>
+        </div>
+      </a>
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-sidenav-content class="">
+    <mat-toolbar color="primary">
+      <button mat-icon-button (click)="drawer.toggle()" style="padding-top: 0.75rem;">
+        @if (!drawer.opened) {
+        <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
+        } @else if (drawer.opened) {
+        <mat-icon color="accent">close</mat-icon>
+        }
+      </button> &nbsp;
+      <button routerLink="/" mat-flat-button>edge</button>
+    </mat-toolbar>
+    <!-- contents -->
+    <section class="content">
+      <router-outlet />
+    </section>
+
+    <footer>
+      <mat-toolbar class="flex flex-row flex-wrap justify-around" color="primary"
+        [ngStyle]="(isHandset$ | async) ? {'min-height': '5rem'} : {}">
+        <span>
+          <code>v0.0.1-alpha0</code>
+        </span>
+
+        <a target="_blank" href="https://docs.edgeflare.io">
+          Docs
+        </a>
+
+        <a target="_blank" href="https://github.com/edgeflare/edge">
+          GitHub
+        </a>
+
+        <a target="_blank" href="https://edgeflare.io">
+          Built with ❤️ by
+          <span class="text-accent font-semibold text-lg">edgeflare.io</span>
+        </a>
+      </mat-toolbar>
+    </footer>
+  </mat-sidenav-content>
+</mat-sidenav-container>

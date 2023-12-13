@@ -1,0 +1,23 @@
+name: Bug report
+description: File a bug report
+title: "[BUG] "
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for taking the time to fill out a bug report!"
+  
+  - type: input
+    attributes:
+      label: What version of the project are you using?
+      description: Please include the output of `edge --version`.
+      placeholder: e.g., v0.0.1-alpha0
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Bug Description
+      description: "Please provide a detailed description of the bug. Include steps to reproduce the issue, along with any other relevant information."
+    validations:
+      required: true

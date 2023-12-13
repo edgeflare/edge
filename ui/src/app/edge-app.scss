@@ -1,0 +1,29 @@
+.sidenav-container {
+  //   height: calc(100vh - 16rem);
+  // height: 100vh;
+}
+
+.sidenav {
+  width: 14rem;
+}
+
+.sidenav .mat-toolbar {
+  background: inherit;
+}
+
+.mat-toolbar.mat-primary {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.content {
+  height: calc(100vh - 8rem);
+  overflow-y: auto;
+}
+
+footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}

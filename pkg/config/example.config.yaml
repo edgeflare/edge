@@ -1,0 +1,13 @@
+extraHelmRepos:
+- name: couchdb
+  url: https://apache.github.io/couchdb-helm
+http:
+  auth:
+    type: none
+  cors:
+    enabled: false
+    allowed_origins:
+    - "*"
+  enableLog: true
+  port: 8080
+kubeconfig: /home/demouser/.kube/config.dev

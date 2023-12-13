@@ -1,0 +1,27 @@
+<div class="mt-16">
+  @if (!formSubmitted) {
+  <form [formGroup]="contactForm" (ngSubmit)="onSubmit()"
+    class="container max-w-lg mx-auto flex-col justify-center gap-4">
+    <mat-form-field class="w-full">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="contact_name">
+    </mat-form-field>
+
+    <mat-form-field class="w-full">
+      <mat-label>Email</mat-label>
+      <input matInput formControlName="contact_email" type="email" required>
+    </mat-form-field>
+
+    <div class="">
+      <button class="w-full btn-lg rounded-none" mat-raised-button color="primary" type="submit"
+        [disabled]="!contactForm.valid">EARLY ACCESS</button>
+    </div>
+  </form>
+  } @else if(formSubmitted) {
+  <div>
+    <ng-template #thanksForContacting>
+      <p class="text-primary text-lg font-bold">Thank you!</p>
+    </ng-template>
+  </div>
+  }
+</div>

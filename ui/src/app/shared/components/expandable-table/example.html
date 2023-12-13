@@ -1,0 +1,29 @@
+@if (networks) {
+<e-expandable-table [data]="networks" [columns]="columns" [cellDefs]="cellDefs"
+  [expandedDetailContent]="customDetailTemplate" (currentRowChanged)="handleRowChange($event)">
+</e-expandable-table>
+
+<ng-template #customDetailTemplate let-rowData>
+  <div class="element-description" *ngIf="rowData">
+    <div class="flex flex-wrap gap-4 p-2">
+      <button mat-raised-button class="btn-lg text-lg rounded-none" color="primary" (click)="toggleDetails()">
+        <mat-icon>data_object</mat-icon>
+        <span>Details</span>
+      </button>
+    </div>
+    @if (isShowDetails) {
+    <div *ngIf="isShowDetails">
+      <e-editor *ngIf="rowData" [inputText]="rowData | json" [mode]="'json'" [isReadOnly]="true"></e-editor>
+    </div>
+    }
+  </div>
+</ng-template>
+} @else if(networks === undefined) {
+<div class="flex justify-center items-center" style="height: 40vh;">
+  <mat-spinner></mat-spinner>
+</div>
+}
+
+@if (networks) {
+  {{ networks[0].created_at | date:'medium'}}
+}

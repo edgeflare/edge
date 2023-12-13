@@ -1,0 +1,267 @@
+<!-- <section> -->
+<mat-toolbar [ngStyle]="{'height': (isHandset$ | async) ? 'auto' : '64px'}">
+  <form [formGroup]="chartFormGroup" class="w-full mt-8">
+
+    <ng-container *ngIf="(isHandset$ | async) === false; else handsetLayout">
+      <div class="flex flex-row items-center">
+
+        <!-- <div class="flex-grow px-2 mb-2">
+            <mat-form-field class="w-full">
+              <mat-label>Name (required)</mat-label>
+              <input matInput formControlName="chartReleaseName" placeholder="chart release name">
+            </mat-form-field>
+          </div> -->
+
+        <div class="flex-grow px-2 mb-2">
+          <mat-form-field class="w-full">
+            <mat-label>Name (required)</mat-label>
+            <input matInput formControlName="chartReleaseName" placeholder="chart release name">
+            <mat-error *ngIf="chartFormGroup.get('chartReleaseName')?.errors?.['required']">
+              Name is required.
+            </mat-error>
+            <mat-error class="text-lg" style="z-index: 999;"
+              *ngIf="chartFormGroup.get('chartReleaseName')?.errors?.['invalidKubernetesName']">
+              <p>
+                Invalid name. Must be less than 253 characters, start and end with an alphanumeric
+                <br>
+                character, and only contain lowercase alphanumeric characters, '-', or '.'.
+              </p>
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- <div class="px-2 mb-2">
+            <mat-form-field class="w-full">
+              <mat-label>Chart Version</mat-label>
+              <mat-select formControlName="chartVersion">
+                <mat-option *ngFor="let v of chartVersions" [value]="v">{{ v }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div> -->
+
+        <div class="px-2 mb-2">
+          <mat-form-field class="w-full">
+            <mat-label>Chart Version</mat-label>
+            <mat-select formControlName="chartVersion" (selectionChange)="onChartVersionChange($event)">
+              <mat-option *ngFor="let v of chartVersions" [value]="v">{{ v }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+
+        <div class="px-2 mb-2">
+          <mat-form-field class="w-full">
+            <mat-label>Namespace</mat-label>
+            <mat-select formControlName="chartReleaseNamespace">
+              <mat-option *ngFor="let ns of namespaces" [value]="ns">{{ ns }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-template #handsetLayout>
+      <div class="flex flex-col">
+
+        <!-- <div class="px-2 mb-2">
+            <mat-form-field class="w-full">
+              <mat-label>Name</mat-label>
+              <input matInput formControlName="chartReleaseName" placeholder="chart release name">
+            </mat-form-field>
+          </div> -->
+
+        <div class="flex-grow px-2 mb-2">
+          <mat-form-field class="w-full">
+            <mat-label>Name (required)</mat-label>
+            <input matInput formControlName="chartReleaseName" placeholder="chart release name">
+            <mat-error *ngIf="chartFormGroup.get('chartReleaseName')?.errors?.['required']">
+              Name is required.
+            </mat-error>
+            <mat-error class="text-lg"
+              *ngIf="chartFormGroup.get('chartReleaseName')?.errors?.['invalidKubernetesName']">
+              <p>
+                Invalid name. Must be less than 253 characters,
+                <br>
+                start and end with an alphanumeric character,
+                <br>
+                and only contain lowercase alphanumeric characters, '-', or '.'.
+              </p>
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="flex flex-row">
+          <!-- <div class="w-1/2 px-2 mb-2">
+              <mat-form-field class="w-full">
+                <mat-label>Chart Version</mat-label>
+                <mat-select formControlName="chartVersion">
+                  <mat-option *ngFor="let v of chartVersions" [value]="v">{{ v }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div> -->
+
+          <div class="w-1/2 px-2 mb-2">
+            <mat-form-field class="w-full">
+              <mat-label>Chart Version</mat-label>
+              <mat-select formControlName="chartVersion" (selectionChange)="onChartVersionChange($event)">
+                <mat-option *ngFor="let v of chartVersions" [value]="v">{{ v }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="w-1/2 px-2 mb-2">
+            <mat-form-field class="w-full">
+              <mat-label>Namespace</mat-label>
+              <mat-select formControlName="chartReleaseNamespace">
+                <mat-option *ngFor="let ns of namespaces" [value]="ns">{{ ns }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+
+  </form>
+</mat-toolbar>
+
+
+
+@if (isLoading === false || cattleHelmChart?.installer_job_completed === true) {
+<div>
+  <div class="p-4 flex justify-end">
+    @if (mode === 'view' && cattleHelmChart?.installer_job_completed === true) {
+    <button mat-raised-button class="text-lg btn-lg rounded-none mr-4" color="accent"
+      [ngClass]="{'w-full': (isHandset$ | async)}" (click)="editRelease()">
+      <mat-icon>edit</mat-icon> Edit <span class="text-xl font-bold">{{ releaseName }}</span>
+    </button>
+    <button mat-raised-button class="text-lg btn-lg rounded-none" [ngClass]="{'w-full': (isHandset$ | async)}"
+      color="warn" (click)="openConfirmDeleteDialog()">
+      <mat-icon>delete</mat-icon> Delete <span class="text-xl font-bold">{{ releaseName }}</span>
+    </button>
+    } @else if (mode === 'upgrade') {
+    <button mat-raised-button class="text-lg btn-lg rounded-none mr-4" [ngClass]="{'w-full': (isHandset$ | async)}"
+      color="accent" (click)="installOrUpgrade()">
+      <mat-icon>update</mat-icon>
+      Upgrade <span class="text-xl font-bold">{{ releaseName }}</span>
+    </button>
+    <button mat-raised-button class="text-lg btn-lg rounded-none" [ngClass]="{'w-full': (isHandset$ | async)}"
+      color="primary" (click)="cancelEdit()">
+      <mat-icon>cancel</mat-icon>
+      Discard changes
+    </button>
+    } @else if (mode === 'install') {
+    <button mat-raised-button class="text-lg btn-lg rounded-none" [ngClass]="{'w-full': (isHandset$ | async)}"
+      color="primary" (click)="installOrUpgrade()" [disabled]="!chartFormGroup.valid">
+      <mat-icon>download_2</mat-icon>
+      Install <span class="text-xl font-bold">{{ chartName }}</span>
+    </button>
+    } @else if (mode === 'reinstall') {
+    <button mat-raised-button class="text-lg btn-lg rounded-none mr-4" [ngClass]="{'w-full': (isHandset$ | async)}"
+      color="primary" (click)="installOrUpgrade()" [disabled]="!chartFormGroup.valid">
+      <mat-icon>download_2</mat-icon>
+      Reinstall <span class="text-xl font-bold">{{ chartName }}</span>
+    </button>
+    <button mat-raised-button class="text-lg btn-lg rounded-none" [ngClass]="{'w-full': (isHandset$ | async)}"
+      color="warn" (click)="openConfirmDeleteDialog()">
+      <mat-icon>delete</mat-icon> Delete <span class="text-xl font-bold">{{ releaseName }}</span>
+    </button>
+    }
+  </div>
+
+  @if (cattleHelmChart?.installer_job_logs && mode === 'view') {
+  <div class="p-4 flex justify-end">
+    <button mat-raised-button class="text-lg btn-lg rounded-none mr-4" color="accent"
+      [ngClass]="{'w-full': (isHandset$ | async)}" (click)="reloadhWindow()">
+      <mat-icon>edit</mat-icon> Refresh status
+    </button>
+    <button mat-raised-button class="text-lg btn-lg rounded-none mr-4" color="accent"
+      [ngClass]="{'w-full': (isHandset$ | async)}" (click)="reinstallFailedRelease()">
+      <mat-icon>edit</mat-icon> Reinstall <span class="text-xl font-bold">{{ releaseName }}</span>
+    </button>
+  </div>
+
+  <h2 class="px-8 text-red-600">INSTALLATION INCOMPLETE! INSTALLER LOGS</h2>
+  <e-editor [inputText]="cattleHelmChart.installer_job_logs || ''" mode="text" [isReadOnly]="true"></e-editor>
+  }
+
+  @if (cattleHelmChart?.installer_job_completed === true || mode !== 'view') {
+  <mat-tab-group>
+    @if (mode === 'view') {
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>dns</mat-icon> &nbsp;
+        INSTALLED RESOURCES
+      </ng-template>
+      <e-release-resources-table [helmchartRelease]="helmchartRelease"></e-release-resources-table>
+    </mat-tab>
+    }
+
+    @if (mode === 'view') {
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>api</mat-icon> &nbsp;
+        WORKLOADS
+      </ng-template>
+      <e-release-workloads-table [helmchartRelease]="helmchartRelease"></e-release-workloads-table>
+    </mat-tab>
+    }
+
+    @if (mode === 'view') {
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>integration_instructions</mat-icon> &nbsp;
+        NOTES
+      </ng-template>
+      <e-editor *ngIf="helmchartRelease.info?.notes" [inputText]="helmchartRelease.info?.notes" mode="text"
+        [isReadOnly]="true"></e-editor>
+    </mat-tab>
+    }
+
+    @if (mode !== 'view') {
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>edit</mat-icon> &nbsp;
+        CUSTOM VALUES
+      </ng-template>
+      @if (mode === 'reinstall') {
+      <e-editor *ngIf="chartCustomValues !== undefined" [inputText]="chartCustomValues" mode="yaml"
+        (contentChange)="handleCustomValuesChange($event)"></e-editor>
+      } @else if (mode === 'install' || mode === 'upgrade') {
+      <e-editor *ngIf="chartCustomValues !== undefined"
+        [inputText]="chartCustomValues ? (chartCustomValues | yaml) : ''" mode="yaml"
+        (contentChange)="handleCustomValuesChange($event)"></e-editor>
+      }
+    </mat-tab>
+    }
+
+    @if (mode !== 'view') {
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>settings_applications</mat-icon> &nbsp;
+        DEFAULT VALUES
+      </ng-template>
+      <div class="flex justify-center items-center" style="height: 60vh;" *ngIf="!values">
+        <mat-spinner></mat-spinner>
+      </div>
+      <e-editor *ngIf="values" [inputText]="values" [isReadOnly]="true"
+        (contentChange)="handleCustomValuesChange($event)" mode="yaml"></e-editor>
+    </mat-tab>
+    }
+
+    @if (mode !== 'view') {
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>book</mat-icon> &nbsp;
+        README
+      </ng-template>
+      <div class="p-4" *ngIf="readme" [innerHTML]="readme | decodeBase64 | markdownToHtml"></div>
+    </mat-tab>
+    }
+  </mat-tab-group>
+  }
+</div>
+} @else if (isLoading === true) {
+<div class="spinner" style="height: 60vh;">
+  <mat-spinner></mat-spinner>
+</div>
+}

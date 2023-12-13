@@ -1,0 +1,123 @@
+<div class="py-8 px-4">
+  @if (!isLoading && !logs && k3sForm) {
+  <form [formGroup]="k3sForm" (ngSubmit)="onSubmit()" class="space-y-4">
+
+    <div>
+      <mat-form-field appearance="fill" class="w-full">
+        <mat-label>Version</mat-label>
+        <mat-select formControlName="version">
+          <mat-option *ngFor="let version of k3sVersions" [value]="version">
+            {{ version }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="flex flex-row justify-between">
+      <div>
+        <mat-slide-toggle formControlName="cluster"></mat-slide-toggle>
+        <mat-label>Cluster mode</mat-label>
+        <br>
+        <mat-hint>Enable high-available, multi-server mode</mat-hint>
+      </div>
+      <div>
+        <mat-slide-toggle formControlName="dl_kubeconfig"></mat-slide-toggle>
+        <mat-label>Download KUBECONFIG</mat-label>
+        <br>
+        <mat-hint>Download from server generated KUBECONFIG file</mat-hint>
+      </div>
+    </div>
+
+    <div>
+      <mat-form-field appearance="fill" class="w-full">
+        <mat-label>TLS SAN</mat-label>
+        <input matInput formControlName="tls_san" class="w-full" />
+        <mat-hint>Comma separated (without space) list of hostnames or IPs to generate a certificate for</mat-hint>
+      </mat-form-field>
+    </div>
+
+    <div>
+      <mat-form-field appearance="fill" class="w-full">
+        <mat-label>Extra K3s Arguments</mat-label>
+        <input matInput formControlName="k3s_args" class="w-full" />
+        <mat-hint>Arguments to pass to k3s server or agent. See <a
+            href="https://rancher.com/docs/k3s/latest/en/installation/install-options/server-config/#arguments"
+            target="_blank"><span class="text-blue-700">k3s docs</span></a> for more info.
+          Leave empty for default values.</mat-hint>
+      </mat-form-field>
+    </div>
+
+    <div formGroupName="ssh">
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Node IP or hostname</mat-label>
+          <input matInput formControlName="host" class="w-full" placeholder="127.0.0.1" />
+          <mat-hint>IP or hostname of the node to install k3s on</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>SSH User</mat-label>
+          <input matInput formControlName="user" class="w-full" />
+          <mat-hint>Username to use for SSH connection</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Keyfile</mat-label>
+          <input matInput formControlName="keyfile" class="w-full" />
+          <mat-hint><code>/absolute/path/to/ssh_key</code>. Leave empty to use <code>~/.ssh/id_rsa</code> or
+            password (if supplied)</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Password</mat-label>
+          <input matInput formControlName="password" type="password" class="w-full" />
+          <mat-hint>Leave empty to use keyfile</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Port</mat-label>
+          <input matInput formControlName="port" type="number" class="w-full" placeholder="22" />
+          <mat-hint>Leave empty to use default port 22</mat-hint>
+        </mat-form-field>
+      </div>
+
+    </div>
+
+    <div class="flex justify-end">
+      <button [disabled]="!k3sForm.valid" mat-raised-button color="primary" type="submit" class="btn-lg rounded-none w-36">CREATE</button>
+    </div>
+  </form>
+  }
+
+  @if(isLoading) {
+  <div class="spinner" style="height: 60vh;">
+    <mat-spinner></mat-spinner>
+  </div>
+  }
+
+  @if (logs) {
+  <div class="mt-4">
+    <e-editor [inputText]="logs" [mode]="'text'" [isReadOnly]="true"></e-editor>
+
+    <div class="mt-4 flex gap-4 justify-end">
+      <button mat-flat-button color="primary" class="btn-lg rounded-none w-32" [routerLink]="['/clusters', clusterId]">
+        <span>CLUSTER NODES</span>
+      </button>
+
+      <button mat-flat-button color="primary" class="btn-lg rounded-none w-32" [routerLink]="['/catalog']">
+        <span>INSTALL APPS</span>
+      </button>
+    </div>
+
+  </div>
+  }
+
+</div>

@@ -1,0 +1,103 @@
+<div class="py-8 px-4">
+  @if (!isLoading && !logs && k3sJoinForm) {
+  <form [formGroup]="k3sJoinForm" (ngSubmit)="onSubmit()" class="space-y-4">
+    <div formGroupName="ssh">
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Node IP or hostname</mat-label>
+          <input matInput formControlName="host" class="w-full" placeholder="127.0.0.1" />
+          <mat-hint>IP or hostname of the node to install k3s on</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>SSH User</mat-label>
+          <input matInput formControlName="user" class="w-full" />
+          <mat-hint>Username to use for SSH connection</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Keyfile</mat-label>
+          <input matInput formControlName="keyfile" class="w-full" />
+          <mat-hint><code>/absolute/path/to/ssh_key</code>. Leave empty to use <code>~/.ssh/id_rsa</code> or
+            password (if supplied)</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Password</mat-label>
+          <input matInput formControlName="password" type="password" class="w-full" />
+          <mat-hint>Leave empty to use keyfile</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Port</mat-label>
+          <input matInput formControlName="port" type="number" class="w-full" placeholder="22" />
+          <mat-hint>Leave empty to use default port 22</mat-hint>
+        </mat-form-field>
+      </div>
+
+    </div>
+
+    <div class="flex flex-row justify-between">
+      <div>
+        <mat-slide-toggle formControlName="master"></mat-slide-toggle>
+        <mat-label>Controle-plane node</mat-label>
+        <br>
+        <mat-hint>Server in high-available, multi-server mode</mat-hint>
+      </div>
+    </div>
+
+    <div>
+      <mat-form-field appearance="fill" class="w-full">
+        <mat-label>server</mat-label>
+        <input matInput formControlName="server" class="w-full" />
+        <mat-hint>Server</mat-hint>
+      </mat-form-field>
+    </div>
+
+    <div>
+      <mat-form-field appearance="fill" class="w-full">
+        <mat-label>token</mat-label>
+        <input matInput formControlName="token" class="w-full" />
+        <mat-hint>token</mat-hint>
+      </mat-form-field>
+    </div>
+
+    <div class="flex justify-end">
+      <button [disabled]="!k3sJoinForm.valid" mat-raised-button color="primary" type="submit"
+        class="btn-lg rounded-none w-36">JOIN NODE</button>
+    </div>
+  </form>
+  }
+
+  @if(isLoading) {
+  <div class="spinner" style="height: 60vh;">
+    <mat-spinner></mat-spinner>
+  </div>
+  }
+
+  @if (logs) {
+  <div class="mt-4">
+    <e-editor [inputText]="logs" [mode]="'text'" [isReadOnly]="true"></e-editor>
+
+    <div class="mt-4 flex gap-4 justify-end">
+      <button mat-flat-button color="primary" class="btn-lg rounded-none w-32" [routerLink]="['/clusters', clusterId]">
+        <span>CLUSTER NODES</span>
+      </button>
+
+      <button mat-flat-button color="primary" class="btn-lg rounded-none w-32" [routerLink]="['/catalog']">
+        <span>INSTALL APPS</span>
+      </button>
+    </div>
+
+  </div>
+  }
+
+</div>

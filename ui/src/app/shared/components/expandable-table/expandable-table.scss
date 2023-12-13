@@ -1,0 +1,24 @@
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+tr.mat-mdc-footer-row td {
+  font-weight: bold;
+}
+
+tr.detail-row {
+  height: 0;
+}
+
+tr.element-row:not(.expanded-row):hover {
+  background: whitesmoke;
+}
+
+tr.element-row:not(.expanded-row):active {
+  background: #efefef;
+}
+
+.element-row td {
+  border-bottom-width: 0;
+}

@@ -1,0 +1,37 @@
+<div class="m-4 flex justify-end">
+  <button mat-flat-button color="primary" class="btn-lg rounded-none w-32" routerLink="join">
+    <mat-icon>add</mat-icon>
+    <span>NODE</span>
+  </button>
+</div>
+
+@if (!isLoading) {
+<e-expandable-table [data]="nodes" [columns]="columns" [cellDefs]="cellDefs"
+  [expandedDetailContent]="customDetailTemplate" (currentRowChanged)="handleRowChange($event)">
+</e-expandable-table>
+
+<ng-template #customDetailTemplate let-rowData>
+  @if (rowData) {
+  <div class="element-description">
+    <div class="flex flex-wrap gap-4 p-2">
+      <button mat-raised-button class="btn-lg text-lg rounded-none" color="warn" [routerLink]="[rowData.id, 'delete']">
+        <mat-icon>delete</mat-icon>
+        <span>Uninstall</span>
+      </button>
+      <button mat-raised-button class="btn-lg text-lg rounded-none" color="primary" (click)="toggleDetails()">
+        <mat-icon>data_object</mat-icon>
+        <span>Details</span>
+      </button>
+    </div>
+
+    @if (isShowDetails) {
+    <e-editor [inputText]="rowData | yaml" [mode]="'yaml'" [isReadOnly]="true"></e-editor>
+    }
+  </div>
+  }
+</ng-template>
+} @else if(isLoading) {
+<div class="spinner" style="height: 40vh;">
+  <mat-spinner></mat-spinner>
+</div>
+}

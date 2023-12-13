@@ -1,0 +1,50 @@
+name: Pull Request
+description: Please fill out the following checklist as you work through your pull request.
+title: "[PR]: "
+labels: [pull-request]
+body:
+  - type: markdown
+    attributes:
+      value: "Thank you for your contribution! Please fill out this form to help us understand your pull request better."
+
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      description: "Please check all that apply."
+      options:
+        - label: "I have read the [contributing guidelines](CONTRIBUTING.md)."
+        - label: "My code follows the code style of this project."
+        - label: "I have added tests to cover my changes."
+        - label: "All new and existing tests passed."
+        - label: "My change requires a change to the documentation."
+        - label: "I have updated the documentation accordingly."
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: "What issue(s) does this PR fix?"
+      description: "Please include the issue number(s), e.g., Fixes #123."
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: "Please describe the changes proposed in this pull request."
+      description: "A clear and concise description of what you have done."
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: "Does this introduce a breaking change?"
+      description: "Please describe any potential breaking changes that this PR might cause."
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: "Other information"
+      description: "Any other information or screenshots that would be helpful for reviewers."
+    validations:
+      required: false

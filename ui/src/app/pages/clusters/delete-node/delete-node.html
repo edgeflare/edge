@@ -1,0 +1,61 @@
+<div class="py-8 px-4">
+  @if (!isLoading && !logs && k3sUninstallForm) {
+  <form [formGroup]="k3sUninstallForm" (ngSubmit)="onSubmit()" class="space-y-4">
+    <div formGroupName="ssh">
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Node IP or hostname</mat-label>
+          <input matInput formControlName="host" class="w-full" placeholder="127.0.0.1" />
+          <mat-hint>IP or hostname of the node to install k3s on</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>SSH User</mat-label>
+          <input matInput formControlName="user" class="w-full" />
+          <mat-hint>Username to use for SSH connection</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Keyfile</mat-label>
+          <input matInput formControlName="keyfile" class="w-full" />
+          <mat-hint><code>/absolute/path/to/ssh_key</code>. Leave empty to use <code>~/.ssh/id_rsa</code> or
+            password (if supplied)</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Password</mat-label>
+          <input matInput formControlName="password" type="password" class="w-full" />
+          <mat-hint>Leave empty to use keyfile</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Port</mat-label>
+          <input matInput formControlName="port" type="number" class="w-full" placeholder="22" />
+          <mat-hint>Leave empty to use default port 22</mat-hint>
+        </mat-form-field>
+      </div>
+
+    </div>
+
+    <div class="flex justify-end">
+      <button [disabled]="!k3sUninstallForm.valid" mat-raised-button color="warn" type="submit"
+        class="btn-lg rounded-none w-36">UNINSTALL</button>
+    </div>
+  </form>
+  }
+
+  @if(isLoading) {
+  <div class="spinner" style="height: 60vh;">
+    <mat-spinner></mat-spinner>
+  </div>
+  }
+
+</div>

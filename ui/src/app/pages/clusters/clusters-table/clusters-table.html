@@ -1,0 +1,33 @@
+<div class="m-4 flex justify-end">
+  <button mat-flat-button color="primary" class="btn-lg rounded-none w-32" routerLink="create">
+    <mat-icon>add</mat-icon>
+    <span>CLUSTER</span>
+  </button>
+</div>
+
+@if (!isLoading) {
+<e-expandable-table [data]="clusters" [columns]="columns" [cellDefs]="cellDefs"
+  [expandedDetailContent]="customDetailTemplate" (currentRowChanged)="handleRowChange($event)">
+</e-expandable-table>
+
+<ng-template #customDetailTemplate let-rowData>
+  @if (rowData) {
+  <div class="element-description">
+    <div class="flex flex-wrap gap-4 p-2">
+      <button mat-raised-button class="btn-lg text-lg rounded-none" color="primary" [routerLink]="[rowData.id]">
+        <mat-icon>dns</mat-icon>
+        <span>NODES</span>
+      </button>
+    </div>
+
+    <!-- @if (isShowDetails) {
+    <e-editor [inputText]="rowData | json" [mode]="'json'" [isReadOnly]="true"></e-editor>
+    } -->
+  </div>
+  }
+</ng-template>
+} @else if(isLoading) {
+<div class="spinner" style="height: 50vh;">
+  <mat-spinner></mat-spinner>
+</div>
+}

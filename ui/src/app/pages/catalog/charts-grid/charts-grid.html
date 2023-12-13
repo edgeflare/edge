@@ -1,0 +1,63 @@
+<section class="mb-32">
+  <mat-toolbar class="flex flex-col sm:flex-row items-center gap-4 p-2">
+    <mat-form-field class="w-full sm:flex-1 mb-2 sm:mb-0 mt-4">
+      <mat-label>Search</mat-label>
+      <input matInput [formControl]="searchTerm" placeholder="Search for charts...">
+      <button mat-icon-button *ngIf="searchTerm.value" matSuffix aria-label="Clear" (click)="searchTerm.reset()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <mat-form-field class="flex items-center gap-2 mb-2 sm:mb-0 mt-6">
+      <mat-label>Helm repo</mat-label>
+      <mat-select [(value)]="selectedRepo" (selectionChange)="onRepoChange()">
+        @for (repo of chartRepos; track repo) {
+        <mat-option [value]="repo">{{ repo.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </mat-toolbar>
+
+  @if (isLoading) {
+  <div class="spinner" style="height: 80vh;">
+    <mat-spinner></mat-spinner>
+  </div>
+  }
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+    @for (chart of filteredChartEntries; track chart) {
+    <mat-card
+      class="rounded overflow-hidden shadow-md hover:shadow-xl hover:cursor-pointer transition-shadow duration-200 p-4"
+      [routerLink]="['/apps', 'install']"
+      [queryParams]="{repo: selectedRepo.name, chart: chart.name, version: chart.version}">
+
+      <div class="flex items-center space-x-4">
+        <div class="w-16 h-16 rounded-full bg-gray-200 overflow-hidden">
+          <img [src]="chart.icon || 'https://avatars.githubusercontent.com/u/15859888'" alt="{{ chart.name }} icon"
+            class="w-full h-full object-cover">
+        </div>
+        <div>
+          <p class="text-2xl font-bold">
+            {{ chart.name }} &nbsp;
+            <mat-chip *ngIf="chart.annotations?.category" color="primary">{{ chart.annotations?.category }}</mat-chip>
+          </p>
+          <span class="text-sm text-gray-500">
+            version: {{ chart.version }} &nbsp;
+            appVersion: {{ chart.appVersion }}
+          </span>
+        </div>
+      </div>
+
+      <mat-card-content class="mt-4">
+        <mat-chip-set>
+          @for (keyword of chart.keywords | slice:0:6; track keyword) {
+          <mat-chip>{{ keyword }}</mat-chip>
+          }
+        </mat-chip-set>
+
+        <p class="text-gray-700 truncate">{{ chart.description }}</p>
+      </mat-card-content>
+    </mat-card>
+    }
+  </div>
+</section>
