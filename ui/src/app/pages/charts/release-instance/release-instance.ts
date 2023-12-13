@@ -44,7 +44,6 @@ export class ReleaseInstance implements OnInit, OnDestroy {
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private title = inject(Title);
-  // private catalogService = inject(HelmCatalogService);
   private dialog = inject(MatDialog);
   isHandset$ = this.appService.isHandset$;
   @Input() releaseName!: string;
@@ -122,7 +121,6 @@ export class ReleaseInstance implements OnInit, OnDestroy {
     }
   }
 
-
   private loadDataBasedOnMode(): void {
     this.isLoading = true;
 
@@ -138,8 +136,7 @@ export class ReleaseInstance implements OnInit, OnDestroy {
               return this.helmChartsService.loadUpgradableChartData(this.repoName, this.chartName, this.releaseNamespace, this.releaseName);
             } else {
               this.loadInstallableChartData();
-              // this.chartCustomValues = cattleHelmChart.spec.valuesContent;
-              return of(null); // or return throwError() if you want to handle it as an error
+              return of(null); // or return throwError() to handle it as an error
             }
           }),
           takeUntil(this.destroy$)
@@ -217,7 +214,7 @@ export class ReleaseInstance implements OnInit, OnDestroy {
           }, 5000); // wait 5 seconds before redirecting or, better, start polling for release status
         },
         error: (error) => {
-          this.snackBar.open(`Error installing ${chart.spec.chart}: ${error}`, 'Close', { duration: 3000 });
+          this.snackBar.open(`Error installing ${chart.spec.chart}: ${error.message}`, 'Close', { duration: 3000 });
         }
       });
     }

@@ -41,8 +41,8 @@ export class ConfirmDeleteDialog {
         this.deletionComplete.emit();
         this.dialogRef.close();
       },
-      error: () => {
-        this.snackBar.open(`Error deleting ${this.itemName} ${this.itemType}`, 'Close', { duration: 3000 });
+      error: (error) => {
+        this.snackBar.open(`Error deleting ${this.itemName} ${this.itemType}: ${error.message}`, 'Close', { duration: 5000 });
       }
     });
   }

@@ -1,16 +1,8 @@
-<!-- <section> -->
 <mat-toolbar [ngStyle]="{'height': (isHandset$ | async) ? 'auto' : '64px'}">
   <form [formGroup]="chartFormGroup" class="w-full mt-8">
 
     <ng-container *ngIf="(isHandset$ | async) === false; else handsetLayout">
       <div class="flex flex-row items-center">
-
-        <!-- <div class="flex-grow px-2 mb-2">
-            <mat-form-field class="w-full">
-              <mat-label>Name (required)</mat-label>
-              <input matInput formControlName="chartReleaseName" placeholder="chart release name">
-            </mat-form-field>
-          </div> -->
 
         <div class="flex-grow px-2 mb-2">
           <mat-form-field class="w-full">
@@ -30,15 +22,6 @@
           </mat-form-field>
         </div>
 
-        <!-- <div class="px-2 mb-2">
-            <mat-form-field class="w-full">
-              <mat-label>Chart Version</mat-label>
-              <mat-select formControlName="chartVersion">
-                <mat-option *ngFor="let v of chartVersions" [value]="v">{{ v }}</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div> -->
-
         <div class="px-2 mb-2">
           <mat-form-field class="w-full">
             <mat-label>Chart Version</mat-label>
@@ -47,7 +30,6 @@
             </mat-select>
           </mat-form-field>
         </div>
-
 
         <div class="px-2 mb-2">
           <mat-form-field class="w-full">
@@ -62,13 +44,6 @@
 
     <ng-template #handsetLayout>
       <div class="flex flex-col">
-
-        <!-- <div class="px-2 mb-2">
-            <mat-form-field class="w-full">
-              <mat-label>Name</mat-label>
-              <input matInput formControlName="chartReleaseName" placeholder="chart release name">
-            </mat-form-field>
-          </div> -->
 
         <div class="flex-grow px-2 mb-2">
           <mat-form-field class="w-full">
@@ -91,15 +66,6 @@
         </div>
 
         <div class="flex flex-row">
-          <!-- <div class="w-1/2 px-2 mb-2">
-              <mat-form-field class="w-full">
-                <mat-label>Chart Version</mat-label>
-                <mat-select formControlName="chartVersion">
-                  <mat-option *ngFor="let v of chartVersions" [value]="v">{{ v }}</mat-option>
-                </mat-select>
-              </mat-form-field>
-            </div> -->
-
           <div class="w-1/2 px-2 mb-2">
             <mat-form-field class="w-full">
               <mat-label>Chart Version</mat-label>
@@ -123,8 +89,6 @@
 
   </form>
 </mat-toolbar>
-
-
 
 @if (isLoading === false || cattleHelmChart?.installer_job_completed === true) {
 <div>

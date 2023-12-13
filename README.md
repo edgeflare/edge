@@ -11,11 +11,24 @@
 
 ### Install `edge`
 
-Get from [Releases](https://github.com/edgeflare/edge/releases) page. Or
+As container
+
+```shell
+docker run -p 8080:8080 edgeflare/edge
+```
+
+Get Linux, Mac and Windows binary from [Releases](https://github.com/edgeflare/edge/releases) page. Or
 
 ```shell
 curl -sfLO https://raw.githubusercontent.com/edgeflare/edge/master/install.sh
 chmod +x install.sh && ./install.sh
+```
+
+Or build from source
+
+```shell
+git clone git@github.com:edgeflare/edge.git && cd edge
+make build-linux-amd64 # make build-darwin-arm64, make build-windows-amd64
 ```
 
 ### Install k3s using `edge`
