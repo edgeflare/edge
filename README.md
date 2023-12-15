@@ -113,11 +113,11 @@ edge k -n default delete helmcharts grafana-test
 #### query clusters and nodes in embedded sqlite3
 
 ```shell
-edge k ls # list clusters
+edge c ls # list clusters
 # ID              Status          Version         Is HA           APIserver       CreatedAt 
 # b5fb728e341e    Running         v1.28.4+k3s2    false           10.164.0.11     2023-12-13T00:09:36Z
 
-edge k nodes --clusterid b5fb728e341e # list nodes in a cluster
+edge c nodes --clusterid b5fb728e341e # list nodes in a cluster
 # Node ID         IP              Role            Status          CreatedAt 
 # 33e37c119a90    10.164.0.11     server          Running         2023-12-13T00:09:36Z
 # 443b2b12f320    10.164.0.12     agent           Running         2023-12-13T00:09:36Z

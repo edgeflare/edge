@@ -5,6 +5,7 @@ import (
 
 	"github.com/edgeflare/edge/pkg/db"
 	"github.com/edgeflare/edge/pkg/ssh"
+	"go.uber.org/zap"
 )
 
 // Service is the service for managing k3s cluster nodes using SSH.
@@ -33,11 +34,52 @@ func (s *Service) Exec(output ssh.OutputWriter, cmdStr string) error {
 // ListClusters returns a list of all clusters in the database.
 func (s *Service) ListClusters() ([]db.K3sCluster, error) {
 	// This method encapsulates the logic to fetch all clusters
-	return db.SelectClusters(s.DB)
+	// And update the status of each cluster
+	clusters, err := db.SelectClusters(s.DB)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range clusters {
+		status := getNodeStatus(clusters[i].Apiserver, 6443)
+
+		if clusters[i].Status == status {
+			continue
+		}
+
+		clusters[i].Status = status
+		err := db.UpdateCluster(s.DB, clusters[i])
+		if err != nil {
+			zap.L().Error("error updating cluster status", zap.Error(err))
+			return nil, err
+		}
+	}
+
+	return clusters, nil
 }
 
 // ListNodesByCluster returns a list of all nodes in a cluster.
 func (s *Service) ListNodesByCluster(clusterID string) ([]db.K3sNode, error) {
 	// This method encapsulates the logic to fetch nodes by cluster ID
-	return db.SelectNodesByCluster(s.DB, clusterID)
+	nodes, err := db.SelectNodesByCluster(s.DB, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range nodes {
+		status := getNodeStatus(nodes[i].IP, 10250)
+
+		if nodes[i].Status == status {
+			continue
+		}
+
+		nodes[i].Status = status
+		err := db.UpdateNode(s.DB, nodes[i])
+		if err != nil {
+			zap.L().Error("error updating node status", zap.Error(err))
+			return nil, err
+		}
+	}
+
+	return nodes, nil
 }
