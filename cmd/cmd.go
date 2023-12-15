@@ -59,6 +59,7 @@ func SetupApp() *cli.App {
 		},
 		Commands: []*cli.Command{
 			k3sCommand(),
+			kubectlCommand(),
 			serverCommand(),
 		},
 	}

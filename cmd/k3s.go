@@ -12,7 +12,7 @@ import (
 func k3sCommand() *cli.Command {
 	return &cli.Command{
 		Name:    "k3s",
-		Aliases: []string{"cluster", "k"},
+		Aliases: []string{"cluster", "c"},
 		Usage:   "manage k3s clusters",
 		Subcommands: []*cli.Command{
 			{

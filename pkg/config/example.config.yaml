@@ -1,13 +1,15 @@
 extraHelmRepos:
 - name: couchdb
   url: https://apache.github.io/couchdb-helm
+- name: cells
+  url: https://download.pydio.com/pub/charts/helm
 http:
   auth:
     type: none
   cors:
     enabled: false
-    allowed_origins:
+    allowOrigins:
     - "*"
   enableLog: true
-  port: 8080
-kubeconfig: /home/demouser/.kube/config.dev
+  port: 8081
+kubeconfig: /home/demouser/.kube/127.0.0.1.config
