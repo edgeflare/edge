@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -44,31 +45,38 @@ func GetHTTPConfig(c echo.Context) error {
 
 // gatewayProxy creates a reverse proxy handler
 func gatewayProxy(target string) echo.HandlerFunc {
-	url, err := url.Parse(target)
+	targetURL, err := url.Parse(target)
 	if err != nil {
 		zap.L().Error("error parsing target URL", zap.String("target", target), zap.Error(err))
 		panic(err)
 	}
-	proxy := httputil.NewSingleHostReverseProxy(url)
+
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+
+	// Configure the Director function
+	proxy.Director = func(req *http.Request) {
+		// Update the scheme and host for the proxy request
+		req.URL.Scheme = targetURL.Scheme
+		req.URL.Host = targetURL.Host
+
+		// Update the Host header to the target host
+		req.Host = targetURL.Host
+
+		// Trim the '/api/gateways' prefix from the path
+		req.URL.Path = strings.TrimPrefix(req.URL.Path, "/api/gateways")
+	}
+
+	// Configure the proxy transport
+	proxy.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{
+			// InsecureSkipVerify: true,
+			ServerName: targetURL.Hostname(),
+		},
+	}
 
 	return func(c echo.Context) error {
-		// Obtain the original request
-		req := c.Request()
-
-		// Rewrite the path
-		originalPath := req.URL.Path
-		newPath := rewritePath(originalPath)
-		req.URL.Path = newPath
-		// req.Header.Add("Authorization", "Bearer ...")
-
 		// Serve the request using the reverse proxy
-		proxy.ServeHTTP(c.Response(), req)
+		proxy.ServeHTTP(c.Response(), c.Request())
 		return nil
 	}
-}
-
-// rewritePath rewrites the path for the proxy request
-func rewritePath(originalPath string) string {
-	// rewriting logic that trims "/api/gateways" prefix from the path
-	return strings.TrimPrefix(originalPath, "/api/gateways")
 }
