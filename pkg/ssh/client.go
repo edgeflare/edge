@@ -18,13 +18,14 @@ type OutputWriter interface {
 
 // Client is a struct to hold the SSH client details
 type Client struct {
-	Config     *ssh.ClientConfig `json:"-"`
-	connection *ssh.Client       `json:"-"` // Internal use only
-	Host       string            `json:"host" validate:"required,hostname|ipaddress"`
-	User       string            `json:"user" validate:"required"`
-	Password   string            `json:"password,omitempty"`
-	Keyfile    string            `json:"keyfile,omitempty"`
-	Port       int               `json:"port,omitempty" validate:"omitempty,min=1,max=65535"`
+	Config        *ssh.ClientConfig `json:"-"` // Internal use only
+	connection    *ssh.Client       `json:"-"` // Internal use only
+	Host          string            `json:"host" validate:"required,hostname|ipaddress"`
+	User          string            `json:"user" validate:"required"`
+	Password      string            `json:"password,omitempty"`
+	Keyfile       string            `json:"keyfile,omitempty"`
+	KeyPassphrase string            `json:"keypassphrase,omitempty"`
+	Port          int               `json:"port,omitempty" validate:"omitempty,min=1,max=65535"`
 }
 
 // Command is a struct to hold the SSH command details
@@ -52,9 +53,9 @@ func (c *Client) Close() error {
 }
 
 // NewSSHClient returns a new SSH client instance
-func NewSSHClient(host, user, password, keyfile string, port int) (*Client, error) {
+func NewSSHClient(host, user, password, keyfile string, port int, keypassphrase string) (*Client, error) {
 	// Create the SSH client configuration
-	config, err := NewSSHClientConfig(user, password, keyfile)
+	config, err := NewSSHClientConfig(user, password, keyfile, keypassphrase)
 	if err != nil {
 		return nil, err
 	}
@@ -66,17 +67,18 @@ func NewSSHClient(host, user, password, keyfile string, port int) (*Client, erro
 
 	// Return a new Client instance with the provided details
 	return &Client{
-		Config:   config,
-		Host:     host,
-		User:     user,
-		Password: password,
-		Keyfile:  keyfile,
-		Port:     port,
+		Config:        config,
+		Host:          host,
+		User:          user,
+		Password:      password,
+		Keyfile:       keyfile,
+		Port:          port,
+		KeyPassphrase: keypassphrase,
 	}, nil
 }
 
 // NewSSHClientConfig returns a new SSH client configuration
-func NewSSHClientConfig(user, password, keyfile string) (*ssh.ClientConfig, error) {
+func NewSSHClientConfig(user, password, keyfile, passphrase string) (*ssh.ClientConfig, error) {
 	var authMethods []ssh.AuthMethod
 
 	home, err := os.UserHomeDir()
@@ -94,10 +96,20 @@ func NewSSHClientConfig(user, password, keyfile string) (*ssh.ClientConfig, erro
 		return nil, fmt.Errorf("unable to read private key: %w", err)
 	}
 
-	signer, err := ssh.ParsePrivateKey(key)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse private key: %w", err)
+	var signer ssh.Signer
+	// Check if passphrase is provided
+	if passphrase != "" {
+		signer, err = ssh.ParsePrivateKeyWithPassphrase(key, []byte(passphrase))
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse private key with passphrase: %w", err)
+		}
+	} else {
+		signer, err = ssh.ParsePrivateKey(key)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse private key: %w", err)
+		}
 	}
+
 	authMethods = append(authMethods, ssh.PublicKeys(signer))
 
 	// If a password is provided, use it as well

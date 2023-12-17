@@ -75,6 +75,14 @@
 
       <div>
         <mat-form-field appearance="fill" class="w-full">
+          <mat-label>keypassphrase</mat-label>
+          <input matInput formControlName="keypassphrase" class="w-full" />
+          <mat-hint>Leave empty if keyfile is not encrypted</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div>
+        <mat-form-field appearance="fill" class="w-full">
           <mat-label>Password</mat-label>
           <input matInput formControlName="password" type="password" class="w-full" />
           <mat-hint>Leave empty to use keyfile</mat-hint>
@@ -92,7 +100,8 @@
     </div>
 
     <div class="flex justify-end">
-      <button [disabled]="!k3sForm.valid" mat-raised-button color="primary" type="submit" class="btn-lg rounded-none w-36">CREATE</button>
+      <button [disabled]="!k3sForm.valid" mat-raised-button color="primary" type="submit"
+        class="btn-lg rounded-none w-36">CREATE</button>
     </div>
   </form>
   }

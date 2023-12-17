@@ -11,7 +11,7 @@ import (
 
 // DownloadK3sKubeconfig downloads the K3s kubeconfig file
 func (s *Service) DownloadK3sKubeconfig() error {
-	client, err := ssh.NewSSHClient(s.sshClient.Host, s.sshClient.User, s.sshClient.Password, s.sshClient.Keyfile, s.sshClient.Port)
+	client, err := ssh.NewSSHClient(s.sshClient.Host, s.sshClient.User, s.sshClient.Password, s.sshClient.Keyfile, s.sshClient.Port, s.sshClient.KeyPassphrase)
 	if err != nil {
 		return fmt.Errorf("error creating SSH client: %w", err)
 	}

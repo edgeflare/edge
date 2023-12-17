@@ -81,6 +81,7 @@ export class CreateCluster implements OnInit {
         user: ['', Validators.required],
         password: [''],
         keyfile: [''],
+        keypassphrase: [''],
         port: [22]
       }),
       tls_san: [''],

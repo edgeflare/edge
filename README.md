@@ -1,4 +1,4 @@
-# manage k3s clusters and helm-charts anywhere
+# containerized applications anywhere
 
 [![GoDoc](https://pkg.go.dev/badge/github.com/edgeflare/edge)](https://pkg.go.dev/github.com/edgeflare/edge) [![Go Report Card](https://goreportcard.com/badge/github.com/edgeflare/edge)](https://goreportcard.com/report/github.com/edgeflare/edge) [![GitHub Actions](https://github.com/edgeflare/edge/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/codeql-analysis.yml/badge.svg) [![GitHub Actions](https://github.com/edgeflare/edge/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/golangci-lint.yml/badge.svg) [![GitHub Actions](https://github.com/edgeflare/edge/actions/workflows/goreleaser.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/goreleaser.yml/badge.svg)
 
@@ -37,6 +37,29 @@ curl -sfL https://raw.githubusercontent.com/edgeflare/edge/master/install.sh | b
 git clone git@github.com:edgeflare/edge.git && cd edge
 make build-linux-amd64 # make build-darwin-arm64, make build-windows-amd64
 ```
+
+### WebUI
+
+```shell
+edge server # alias: s
+# Web UI available at http://localhost:8080
+# See edge s --help for more options
+```
+
+#### Explore readonly WebUI at [demo.edgeflare.io](https://demo.edgeflare.io)
+
+##### manage helm-charts
+
+|                                            |                                              |
+|--------------------------------------------|----------------------------------------------|
+| ![helm-catalog](docs/img/helm-catalog.png) | ![helm-install](docs/img/helm-install.png)   |
+| ![helm-list](docs/img/helm-list.png)       | ![helm-release](docs/img/helm-release.png)   |
+
+##### install k3s cluster and join nodes
+
+<p align="center">
+  <img src="docs/img/demo.gif" alt="demo">
+</p>
 
 ## How to use `edge`?
 
@@ -136,30 +159,6 @@ edge c nodes --clusterid b5fb728e341e # list nodes in a cluster
 edge c destroy -H 10.164.0.11 -u admin # alias: uninstall
 edge c d -H 10.164.0.12 -u admin -a # if agent node
 ```
-
-
-### WebUI
-
-```shell
-edge server # alias: s
-# Web UI available at http://localhost:8080
-# See edge s --help for more options
-```
-
-#### Explore readonly WebUI at [demo.edgeflare.io](https://demo.edgeflare.io)
-
-##### manage helm-charts
-
-|                                            |                                              |
-|--------------------------------------------|----------------------------------------------|
-| ![helm-catalog](docs/img/helm-catalog.png) | ![helm-install](docs/img/helm-install.png)   |
-| ![helm-list](docs/img/helm-list.png)       | ![helm-release](docs/img/helm-release.png)   |
-
-##### install k3s cluster and join nodes
-
-<p align="center">
-  <img src="docs/img/demo.gif" alt="demo">
-</p>
 
 ## How to contribute to `edge`?
 

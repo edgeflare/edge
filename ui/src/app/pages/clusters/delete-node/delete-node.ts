@@ -98,6 +98,7 @@ export class DeleteNode implements OnInit {
         user: ['', Validators.required],
         password: [''],
         keyfile: [''],
+        keypassphrase: [''],
         port: [22]
       }),
       agent: [this.node.role === 'agent'],

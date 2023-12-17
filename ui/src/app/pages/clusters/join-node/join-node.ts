@@ -8,7 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Router, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { Editor } from '@components/editor';
 import { K3sService } from '@services';
 import { Subject, takeUntil } from 'rxjs';
@@ -18,7 +18,7 @@ import { K3sCluster } from '@app/shared/interfaces/cluster';
   selector: 'e-join-node',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-    MatSnackBarModule, MatSlideToggleModule, MatProgressSpinnerModule, RouterModule, Editor],
+    MatSnackBarModule, MatSlideToggleModule, MatProgressSpinnerModule, Editor, RouterModule],
   templateUrl: './join-node.html',
   styles: ``
 })
@@ -34,7 +34,7 @@ export class JoinNode implements OnInit {
   private fb = inject(FormBuilder);
   private k3sService = inject(K3sService);
   private snackBar = inject(MatSnackBar);
-  private router = inject(Router);
+  // private router = inject(Router);
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
@@ -69,6 +69,7 @@ export class JoinNode implements OnInit {
         user: ['', Validators.required],
         password: [''],
         keyfile: [''],
+        keypassphrase: [''],
         port: [22]
       }),
       server: [this.cluster.apiserver, Validators.required],

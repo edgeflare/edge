@@ -21,6 +21,7 @@ func createSSHClientFromContext(c *cli.Context) (*ssh.Client, error) {
 		c.String("password"),
 		c.String("keyfile"),
 		c.Int("port"),
+		c.String("keypassphrase"),
 	)
 }
 
@@ -28,13 +29,13 @@ var sshFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:     "host",
 		Aliases:  []string{"H"},
-		Usage:    "host IP or domain name",
+		Usage:    "host IP or domainname of target node",
 		Required: true,
 	},
 	&cli.StringFlag{
 		Name:     "user",
 		Aliases:  []string{"u"},
-		Usage:    "user name",
+		Usage:    "ssh username of target node",
 		Required: true,
 	},
 	&cli.StringFlag{
@@ -57,5 +58,10 @@ var sshFlags = []cli.Flag{
 		Name:    "env",
 		Aliases: []string{"e"},
 		Usage:   "environment variables in the form KEY=VALUE",
+	},
+	&cli.StringFlag{
+		Name:    "keypassphrase",
+		Aliases: []string{"K"},
+		Usage:   "passphrase for ssh private key",
 	},
 }

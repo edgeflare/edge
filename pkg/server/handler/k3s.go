@@ -168,6 +168,7 @@ func createSSHClient(sshClient *ssh.Client) (*ssh.Client, error) {
 		sshClient.Password,
 		sshClient.Keyfile,
 		sshClient.Port,
+		sshClient.KeyPassphrase,
 	)
 }
 

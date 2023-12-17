@@ -67,7 +67,7 @@ func (s *Service) downloadToken(server string) (string, error) {
 	tokenPath := "/var/lib/rancher/k3s/server/node-token"
 	localPath := server + "-node-token"
 
-	sshClient, err := ssh.NewSSHClient(server, s.sshClient.User, s.sshClient.Password, s.sshClient.Keyfile, s.sshClient.Port)
+	sshClient, err := ssh.NewSSHClient(server, s.sshClient.User, s.sshClient.Password, s.sshClient.Keyfile, s.sshClient.Port, s.sshClient.KeyPassphrase)
 	if err != nil {
 		return "", fmt.Errorf("error creating SSH client: %w", err)
 	}
