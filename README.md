@@ -13,18 +13,25 @@
 
 `edge` is a Go binary with an embedded web UI built with [Angular](https://angular.io/). It runs on Linux, Windows, macOS, and as container.
 
+#### Run as container
+
 ```shell
 docker run -p 8080:8080 edgeflare/edge
 ```
 
+Optionally, supply: 
+- `--volume $HOME/.kube/config:/workspace/.kube/config` for edge to use local kubeconfig
+- `--volume $HOME/.ssh/id_rsa:/workspace/.ssh/id_rsa` for edge to use local SSH private key
+
+#### Download binary
+
 Get Linux, Mac and Windows binary from [Releases](https://github.com/edgeflare/edge/releases) page. Or
 
 ```shell
-curl -sfLO https://raw.githubusercontent.com/edgeflare/edge/master/install.sh
-chmod +x install.sh && ./install.sh
+curl -sfL https://raw.githubusercontent.com/edgeflare/edge/master/install.sh | bash -
 ```
 
-Or build from source
+#### Install from source
 
 ```shell
 git clone git@github.com:edgeflare/edge.git && cd edge
