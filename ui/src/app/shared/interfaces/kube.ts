@@ -24,3 +24,22 @@ export interface KubernetesResourceMetadata {
   labels?: object;
   annotations?: object;
 }
+
+export interface APIResource {
+  name: string;
+  singularName: string;
+  namespaced: boolean;
+  kind: string;
+  verbs: string[];
+  shortNames?: string[];
+  categories?: string[];
+}
+
+export interface GroupVersion {
+  groupVersion: string;
+  resources: APIResource[];
+}
+
+// export interface ApiResponse {
+//   apiResources: GroupVersion[];
+// }

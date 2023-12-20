@@ -18,6 +18,10 @@ export const routes: Routes = [
     loadChildren: () => import('./pages/clusters').then(r => r.CLUSTER_ROUTES)
   },
   {
+    path: 'kubectl',
+    loadChildren: () => import('./pages/kubectl').then(r => r.KUBECTL_ROUTES)
+  },
+  {
     path: 'privacy-policy',
     loadComponent: () => import('./pages/privacy-policy/privacy-policy').then(r => r.PrivacyPolicy)
   },

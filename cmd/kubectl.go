@@ -48,12 +48,17 @@ func kubectlCommand() *cli.Command {
 						}
 					}
 
-					if err := kube.ApplyResource(fileBytes); err != nil {
+					kc, err := kube.NewClient()
+					if err != nil {
+						fmt.Println("Error creating kube client:", err)
+					}
+
+					if err := kc.ApplyResource(fileBytes); err != nil {
 						fmt.Println("Error applying resource:", err)
 						return err
 					}
 
-					fmt.Println("Applied resource successfully")
+					fmt.Println("Resource applied successfully")
 					return nil
 				},
 				Flags: []cli.Flag{
@@ -85,8 +90,13 @@ func kubectlCommand() *cli.Command {
 					resourceName := c.Args().Get(1)
 					namespace := c.String("namespace")
 
-					if err := kube.DeleteResource(resourceType, resourceName, namespace, fileContent); err != nil {
-						fmt.Println(err)
+					kc, err := kube.NewClient()
+					if err != nil {
+						fmt.Println("Error creating kube client:", err)
+					}
+
+					if err := kc.DeleteResource(resourceType, resourceName, namespace, fileContent); err != nil {
+						fmt.Println("Error deleting resource:", err)
 						return err
 					}
 
@@ -133,7 +143,12 @@ func getResource(c *cli.Context) error {
 		resourceName = c.Args().Get(1) // Get the specific resource name if provided
 	}
 
-	resources, err := kube.GetResources(resourceType, resourceName, c.String("namespace"))
+	kc, err := kube.NewClient()
+	if err != nil {
+		return fmt.Errorf("error creating kube client: %v", err)
+	}
+
+	resources, err := kc.GetResources(resourceType, resourceName, c.String("namespace"))
 	if err != nil {
 		return fmt.Errorf("error getting Kubernetes resources: %v", err)
 	}

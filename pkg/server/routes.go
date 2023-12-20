@@ -38,7 +38,12 @@ func RegisterHandlers(e *echo.Echo, c *config.Config) {
 		}
 
 		// kubernetes resources
+		api.GET("api-resources", handler.ListAPIResources)
 		api.GET("namespaces", handler.GetNamespaces)
+		api.GET("namespaces/:namespace/:resourceType/:resourceName", handler.GetResources) // specific resource in specific namespace
+		api.GET("namespaces/:namespace/:resourceType", handler.GetResources)               // in specific namespace
+		api.POST("namespaces/:namespace/:resourceType/:resourceName", handler.ApplyResource)
+		api.DELETE("namespaces/:namespace/:resourceType/:resourceName", handler.DeleteResource)
 
 		// k3s clusters
 		cluster := api.Group("clusters")

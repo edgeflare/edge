@@ -1,0 +1,181 @@
+@if (groupVersions) {
+<mat-toolbar [ngStyle]="{'height': (isHandset$ | async) ? 'auto' : '64px'}">
+  <form [formGroup]="kubectlForm" class="w-full mt-8">
+    @if ((isHandset$ | async) === false) {
+    <ng-container>
+      <div class="flex flex-row items-center">
+
+        <div class="px-2 mb-2">
+          <mat-form-field class="w-full">
+            <mat-label>Resource</mat-label>
+            <mat-select formControlName="resource" (selectionChange)="onGroupVersionChange($event)"
+              [value]="selectedResource">
+              <mat-optgroup *ngFor="let group of groupVersions" [label]="group.groupVersion">
+                <mat-option *ngFor="let resource of group.resources"
+                  [value]="{groupVersion: group.groupVersion, resource: resource}">
+                  {{ resource.name }}
+                </mat-option>
+              </mat-optgroup>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="px-2 mb-2">
+          <mat-form-field class="w-full">
+            <mat-label>Action</mat-label>
+            <mat-select formControlName="verb">
+              <mat-option *ngFor="let v of verbs" [value]="v">{{ v }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="px-2 mb-2">
+          <mat-form-field class="w-full">
+            <mat-label>Namespace</mat-label>
+            <mat-select formControlName="namespace">
+              <mat-option *ngFor="let ns of namespaces" [value]="ns">{{ ns }}</mat-option>
+              <mat-option [value]="''">All namespaces</mat-option>
+              <mat-option *ngIf="isNamespaceDisabled" [value]="'N/A'">Cluster Scoped Resource</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="flex-grow px-2 mb-2">
+          <mat-form-field class="w-full">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="resourceName" placeholder="resourceName">
+            <mat-error *ngIf="kubectlForm.get('resourceName')?.errors?.['required']">
+              Name is required.
+            </mat-error>
+            <mat-error class="text-lg" style="z-index: 999;"
+              *ngIf="kubectlForm.get('resourceName')?.errors?.['invalidKubernetesName']">
+              <p>
+                Invalid name. Must be less than 253 characters, start and end with an alphanumeric
+                <br>
+                character, and only contain lowercase alphanumeric characters, '-', or '.'.
+              </p>
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+      </div>
+    </ng-container>
+    } @else if ((isHandset$ | async) === true) {
+    <ng-container>
+      <div class="flex flex-col">
+        <div class="flex flex-row">
+
+          <div class="w-1/2 px-2 mb-2">
+            <mat-form-field class="w-full">
+              <mat-label>Resource</mat-label>
+              <mat-select formControlName="resource" (selectionChange)="onGroupVersionChange($event)"
+                [value]="selectedResource">
+                <mat-optgroup *ngFor="let group of groupVersions" [label]="group.groupVersion">
+                  <mat-option *ngFor="let resource of group.resources"
+                    [value]="{groupVersion: group.groupVersion, resource: resource}">
+                    {{ resource.name }}
+                  </mat-option>
+                </mat-optgroup>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="w-1/2 px-2 mb-2">
+            <mat-form-field class="w-full">
+              <mat-label>Namespace</mat-label>
+              <mat-select formControlName="namespace">
+                <mat-option *ngFor="let ns of namespaces" [value]="ns">{{ ns }}</mat-option>
+                <mat-option *ngIf="isNamespaceDisabled" [value]="'N/A'">Cluster Scoped Resource</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="flex flex-row">
+          <div class="w-1/2 px-2 mb-2">
+            <mat-form-field class="w-full">
+              <mat-label>Action</mat-label>
+              <mat-select formControlName="verb">
+                <mat-option *ngFor="let v of verbs" [value]="v">{{ v }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="w-1/2 px-2 mb-2">
+            <mat-form-field class="w-full">
+              <mat-label>Name</mat-label>
+              <input matInput formControlName="resourceName" placeholder="resourceName">
+              <mat-error *ngIf="kubectlForm.get('resourceName')?.errors?.['required']">
+                Name is required.
+              </mat-error>
+              <mat-error class="text-lg" style="z-index: 999;"
+                *ngIf="kubectlForm.get('resourceName')?.errors?.['invalidKubernetesName']">
+                <p>
+                  Invalid name. Must be less than 253 characters, start and end with an alphanumeric
+                  <br>
+                  character, and only contain lowercase alphanumeric characters, '-', or '.'.
+                </p>
+              </mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+    }
+
+  </form>
+</mat-toolbar>
+}
+
+<div class="m-4 flex justify-end">
+  <button [disabled]="!kubectlForm.value.verb" mat-flat-button color="primary" class="btn-lg rounded-none w-32"
+    (click)="handleAction()">
+    <span>{{ kubectlForm.value.verb }}</span>
+  </button>
+</div>
+
+@if (manifests.length > 0 && kubectlForm.value.verb === 'list') {
+<e-expandable-table [data]="manifests" [columns]="columns" [cellDefs]="cellDefs"
+  [expandedDetailContent]="customDetailTemplate" (currentRowChanged)="handleRowChange($event)">
+</e-expandable-table>
+
+<ng-template #customDetailTemplate let-rowData>
+  @if (rowData) {
+  <div class="element-description">
+    <div class="flex flex-wrap gap-4 p-2">
+      <button mat-raised-button class="btn-lg text-lg rounded-none" color="primary" (click)="toggleDetails()">
+        <mat-icon>data_object</mat-icon>
+        <span>Details</span>
+      </button>
+    </div>
+
+    @if (isShowDetails) {
+    <e-editor [inputText]="rowData | json" [mode]="'json'" [isReadOnly]="true"></e-editor>
+    }
+  </div>
+  }
+</ng-template>
+} @else if(isLoading) {
+<div class="spinner" style="height: 50vh;">
+  <mat-spinner></mat-spinner>
+</div>
+}
+
+@if (kubectlForm.value.verb === 'get' || kubectlForm.value.verb === 'create' || kubectlForm.value.verb === 'update') {
+<div>
+  <mat-button-toggle-group #group="matButtonToggleGroup" (change)="toggleEditorMode(group.value)">
+    <mat-button-toggle value="json">JSON</mat-button-toggle>
+    <mat-button-toggle value="yaml">YAML</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  @if (editorMode === 'yaml') {
+  <e-editor [inputText]="resourceDefinition | yaml" [mode]="editorMode"
+    (contentChange)="handleCustomValuesChange($event)"
+    [isReadOnly]="!(kubectlForm.value.verb === 'create' || kubectlForm.value.verb === 'update')"></e-editor>
+  } @else if (editorMode === 'json') {
+  <e-editor [inputText]="resourceDefinition | json" [mode]="editorMode"
+    (contentChange)="handleCustomValuesChange($event)"
+    [isReadOnly]="!(kubectlForm.value.verb === 'create' || kubectlForm.value.verb === 'update')"></e-editor>
+  }
+</div>
+}

@@ -58,6 +58,7 @@ export class AppComponent implements OnInit, OnDestroy {
     { name: 'Clusters', path: '/clusters', icon: 'lan' },
     { name: 'Catalog', path: '/catalog', icon: 'format_list_bulleted_add' },
     { name: 'Apps', path: '/apps', icon: 'apps' },
+    { name: 'kubectl', path: '/kubectl', icon: 'terminal' },
     { name: 'Gateways', path: '/gateways', icon: 'public' },
   ];
 }

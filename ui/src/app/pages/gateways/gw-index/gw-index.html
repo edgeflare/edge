@@ -6,7 +6,35 @@
   </mat-card-header>
   <mat-card-content></mat-card-content>
   <mat-card-actions>
-    <button mat-raised-button class="rounded-none btn-lg font-semibold" color="primary" routerLink="/gateways/early-access">EARLY ACCESS</button>
+    <button mat-raised-button class="rounded-none btn-lg font-semibold" color="primary"
+      routerLink="/gateways/early-access">EARLY ACCESS</button>
   </mat-card-actions>
 </mat-card>
 
+<section class="m-8">
+  <h2 class="text-xl font-semibold my-3">How Does Gateway Work?</h2>
+  <p class="my-2">
+    A Gateway is an Internet-facing WireGuard peer that serves as a proxy for your local and edge servers. Use any
+    WireGuard supported VPN network.
+  </p>
+  <ul class="list-disc pl-6">
+    <li><a href="https://www.wireguard.com" class="text-blue-500 hover:text-blue-700">DIY WireGuard</a></li>
+    <li><a href="https://netmaker.org" class="text-blue-500 hover:text-blue-700">Netmaker</a></li>
+    <li><a href="https://tailscale.com" class="text-blue-500 hover:text-blue-700">Tailscale</a></li>
+    <li><a href="https://www.zerotier.com" class="text-blue-500 hover:text-blue-700">ZeroTier</a></li>
+    <li><a href="https://headscale.net" class="text-blue-500 hover:text-blue-700">Headscale</a></li>
+  </ul>
+</section>
+
+<section class="m-8">
+  <h2 class="text-xl font-semibold my-3">Key Features</h2>
+  <ul class="list-disc pl-6">
+    <li>Advanced Global Reach: Utilize GCP's global load balancer with a single, anycast IP.</li>
+    <li>Comprehensive Protocol Support: Full compatibility with Layer 7 and Layer 4 (TCP/UDP) on any port.</li>
+    <li>Easy Access: Connect through subdomains or use custom domains and private IP addresses.</li>
+    <li>Secure: Automatic TLS certificates</li>
+    <li>Network protection with <a href="https://cloudflare.com"
+        class="text-blue-500 hover:text-blue-700">Cloudflare</a>.</li>
+    <li>Open-Source and Privacy-Focused: Your node. We merely manage it.</li>
+  </ul>
+</section>
