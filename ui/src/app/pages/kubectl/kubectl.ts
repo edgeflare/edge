@@ -18,7 +18,7 @@ import { ExpandableTable } from '@app/shared/components/expandable-table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import * as yaml from 'js-yaml';
-import { ChangeDetectorRef } from '@angular/core';
+// import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'e-kubectl',
@@ -34,7 +34,7 @@ export class Kubectl implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private snackBar = inject(MatSnackBar);
   private kubectlService = inject(KubectlService);
-  private cdr = inject(ChangeDetectorRef);
+  // private cdr = inject(ChangeDetectorRef);
 
   isHandset$ = this.appService.isHandset$;
   kubectlForm!: FormGroup;
@@ -192,8 +192,7 @@ export class Kubectl implements OnInit, OnDestroy {
       this.kubectlForm.value.resourceName,
     ).subscribe({
       next: (manifest) => {
-        this.resourceDefinition = manifest;
-        this.cdr.detectChanges(); // trigger change detection
+        // this.resourceDefinition = manifest;
         this.handleCustomValuesChange(JSON.stringify(manifest));
       },
       error: (error) => this.handleError(error)

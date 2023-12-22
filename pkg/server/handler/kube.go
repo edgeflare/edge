@@ -55,7 +55,7 @@ func ApplyResource(c echo.Context) error {
 func GetResources(c echo.Context) error {
 	resourceType := c.Param("resourceType")
 	resourceName := c.Param("resourceName")
-	namespace := c.QueryParam("namespace")
+	namespace := c.Param("namespace")
 
 	if namespace == "all" {
 		namespace = ""
@@ -82,7 +82,7 @@ func GetResources(c echo.Context) error {
 func DeleteResource(c echo.Context) error {
 	resourceType := c.Param("resourceType")
 	resourceName := c.Param("resourceName")
-	namespace := c.QueryParam("namespace")
+	namespace := c.Param("namespace")
 
 	if namespace == "all" {
 		namespace = ""
