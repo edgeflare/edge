@@ -191,7 +191,7 @@ func fetchHelmChartharttWorkloads(namespace string, manifestJSON []interface{}) 
 		wg.Add(1)
 		go func(kind string, resourceMap map[string]interface{}) {
 			defer wg.Done()
-			processWorkload(kind, resourceMap, clientset, namespace, statusCh, errCh)
+			processWorkload(kind, resourceMap, clientset, statusCh, errCh)
 		}(kind, resourceMap)
 	}
 
@@ -215,7 +215,7 @@ func fetchHelmChartharttWorkloads(namespace string, manifestJSON []interface{}) 
 	return statuses, returnErr
 }
 
-func processWorkload(kind string, resourceMap map[string]interface{}, clientset *kubernetes.Clientset, namespace string, statusCh chan<- WorkloadStatus, errCh chan<- error) {
+func processWorkload(kind string, resourceMap map[string]interface{}, clientset *kubernetes.Clientset, statusCh chan<- WorkloadStatus, errCh chan<- error) {
 	metadata, ok := resourceMap["metadata"].(map[string]interface{})
 	if !ok {
 		errCh <- fmt.Errorf("metadata not found for kind %s", kind)
@@ -225,6 +225,12 @@ func processWorkload(kind string, resourceMap map[string]interface{}, clientset 
 	if !ok {
 		errCh <- fmt.Errorf("name not found in metadata for kind %s", kind)
 		return
+	}
+
+	// Get namespace from metadata, default to metav1.NamespaceAll
+	namespace, ok := metadata["namespace"].(string)
+	if !ok {
+		namespace = metav1.NamespaceAll
 	}
 
 	var labelSelector string
