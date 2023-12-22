@@ -93,7 +93,7 @@ func GetHelmChartReleaseWithWorkloads(namespace, releaseName string) (*ReleaseWi
 		return nil, err
 	}
 
-	statuses, err := fetchHelmChartharttWorkloads(namespace, release.Manifest.([]interface{}))
+	statuses, err := fetchHelmChartharttWorkloads(release.Manifest.([]interface{}))
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func SetupHelmConfiguration(namespace string) (*action.Configuration, error) {
 	return actionConfig, nil
 }
 
-func fetchHelmChartharttWorkloads(namespace string, manifestJSON []interface{}) ([]WorkloadStatus, error) {
+func fetchHelmChartharttWorkloads(manifestJSON []interface{}) ([]WorkloadStatus, error) {
 	kubeConfig, err := GetKubernetesConfig()
 	if err != nil {
 		return nil, err
@@ -216,21 +216,10 @@ func fetchHelmChartharttWorkloads(namespace string, manifestJSON []interface{}) 
 }
 
 func processWorkload(kind string, resourceMap map[string]interface{}, clientset *kubernetes.Clientset, statusCh chan<- WorkloadStatus, errCh chan<- error) {
-	metadata, ok := resourceMap["metadata"].(map[string]interface{})
-	if !ok {
-		errCh <- fmt.Errorf("metadata not found for kind %s", kind)
+	name, namespace, err := extractMetadata(resourceMap)
+	if err != nil {
+		errCh <- err
 		return
-	}
-	name, ok := metadata["name"].(string)
-	if !ok {
-		errCh <- fmt.Errorf("name not found in metadata for kind %s", kind)
-		return
-	}
-
-	// Get namespace from metadata, default to metav1.NamespaceAll
-	namespace, ok := metadata["namespace"].(string)
-	if !ok {
-		namespace = metav1.NamespaceAll
 	}
 
 	var labelSelector string
@@ -297,4 +286,24 @@ func processWorkload(kind string, resourceMap map[string]interface{}, clientset 
 		}
 	}
 
+}
+
+func extractMetadata(resourceMap map[string]interface{}) (string, string, error) {
+	metadata, ok := resourceMap["metadata"].(map[string]interface{})
+	if !ok {
+		return "", "", fmt.Errorf("metadata not found")
+	}
+
+	name, ok := metadata["name"].(string)
+	if !ok {
+		return "", "", fmt.Errorf("name not found in metadata")
+	}
+
+	// Get namespace from metadata, default to metav1.NamespaceAll if not found
+	namespace, ok := metadata["namespace"].(string)
+	if !ok {
+		namespace = metav1.NamespaceAll
+	}
+
+	return name, namespace, nil
 }
