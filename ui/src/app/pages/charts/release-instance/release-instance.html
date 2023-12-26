@@ -223,6 +223,13 @@
     }
   </mat-tab-group>
   }
+
+  @if (mode === 'view') {
+  <div class="my-16">
+    <h1 class="pl-4">Release revisions</h1>
+    <e-release-revisions [releaseName]="releaseName" [releaseNamespace]="releaseNamespace"></e-release-revisions>
+  </div>
+  }
 </div>
 } @else if (isLoading === true) {
 <div class="spinner" style="height: 60vh;">

@@ -26,13 +26,14 @@ import { ReleaseResourcesTable } from './release-resources-table';
 import { ReleaseWorkloadsTable } from './release-workloads-table';
 import { ChartReleaseData } from '@app/shared/services/helmchart-release.service';
 import { Title } from '@angular/platform-browser';
+import { ReleaseRevisions } from '../release-revisions/release-revisions';
 
 @Component({
   selector: 'e-release-instance',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule, MatSnackBarModule, MatDialogModule, MatIconModule, MatInputModule,
     MatButtonModule, MatFormFieldModule, MatSelectModule, MatProgressSpinnerModule, ConfirmDeleteDialog, YamlPipe, DecodeBase64Pipe,
-    MatToolbarModule, MatTabsModule, MarkdownToHtmlPipe, Editor, ExpandableTable, ReleaseResourcesTable, ReleaseWorkloadsTable],
+    MatToolbarModule, MatTabsModule, MarkdownToHtmlPipe, Editor, ExpandableTable, ReleaseResourcesTable, ReleaseWorkloadsTable, ReleaseRevisions],
   templateUrl: './release-instance.html',
   styles: ``
 })
@@ -63,7 +64,7 @@ export class ReleaseInstance implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.initializeMode();
     this.initializeForm();
-    this.title.setTitle(`edge - ${this.releaseName === undefined ? this.chartName : this.releaseName }`)
+    this.title.setTitle(`edge - ${this.releaseName === undefined ? this.chartName : this.releaseName}`)
     this.loadDataBasedOnMode();
   }
 

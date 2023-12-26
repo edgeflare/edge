@@ -62,7 +62,7 @@ func RegisterHandlers(e *echo.Echo, c *config.Config) {
 		api.GET("helmcharts", handler.ListHelmChartReleases) // all namespaces
 		api.GET("namespaces/:namespace/helmcharts", handler.ListHelmChartReleases)
 		api.GET("namespaces/:namespace/helmcharts/:releaseName", handler.GetHelmChartRelease)
-		api.GET("namespaces/:namespace/helmcharts/:releaseName/history", handler.GetChartReleaseHistory)
+		api.GET("namespaces/:namespace/helmcharts/:releaseName/revisions", handler.GetChartReleaseRevisions)
 		api.GET("namespaces/:namespace/helmcharts/:releaseName/workloads", handler.GetHelmChartReleaseWithWorkloads)
 
 		// kubernetes resources

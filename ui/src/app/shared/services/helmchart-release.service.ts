@@ -140,6 +140,15 @@ export class HelmChartReleaseService {
   public getCattleHelmChart(namespace: string, releaseName: string): Observable<CattleHelmChart> {
     return this.http.get<CattleHelmChart>(`${environment.api}/cattle/namespaces/${namespace}/helmcharts/${releaseName}`);
   }
+
+  /**
+   * @param namespace
+   * @param releaseName
+   * @returns Observable<ChartRelease[]>
+   */
+  public getChartReleaseRevisions(namespace: string, releaseName: string): Observable<ChartRelease[]> {
+    return this.http.get<ChartRelease[]>(`${environment.api}/namespaces/${namespace}/helmcharts/${releaseName}/revisions`);
+  }
 }
 
 export interface ChartReleaseData {

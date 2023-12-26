@@ -48,7 +48,7 @@ func GetHelmChartReleaseWithWorkloads(c echo.Context) error {
 	return c.JSON(http.StatusOK, resources)
 }
 
-func GetChartReleaseHistory(c echo.Context) error {
+func GetChartReleaseRevisions(c echo.Context) error {
 	namespace := c.Param("namespace")
 	releaseName := c.Param("releaseName")
 

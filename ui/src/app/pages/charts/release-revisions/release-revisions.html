@@ -1,0 +1,40 @@
+@if (!isLoading) {
+<div>
+  <e-expandable-table [data]="releaseRevisions" [columns]="columns" [cellDefs]="cellDefs"
+    [expandedDetailContent]="customDetailTemplate" (currentRowChanged)="handleRowChange($event)">
+  </e-expandable-table>
+
+  <ng-template #customDetailTemplate let-rowData>
+    @if (rowData) {
+    <div class="element-description">
+      <div class="flex flex-wrap gap-4 p-2">
+        <button mat-raised-button class="btn-lg text-lg rounded-none" color="primary" (click)="toggleDetails()">
+          <mat-icon>data_object</mat-icon>
+          <span>Details</span>
+        </button>
+        <button mat-raised-button class="btn-lg text-lg rounded-none" color="primary"
+          (click)="toggleShowCustomValues()">
+          <mat-icon>edit</mat-icon>
+          <span>Custom values</span>
+        </button>
+        <button mat-raised-button class="btn-lg text-lg rounded-none" color="accent" disabled>
+          <mat-icon>replay</mat-icon>
+          <span>Rollback</span>
+        </button>
+      </div>
+
+      @if (isShowDetails) {
+      <e-editor [inputText]="rowData | yaml" [mode]="'yaml'" [isReadOnly]="true"></e-editor>
+      }
+      @if (isShowCustomValues) {
+      <e-editor [inputText]="rowData.config | yaml" [mode]="'yaml'" [isReadOnly]="true"></e-editor>
+      }
+    </div>
+    }
+  </ng-template>
+</div>
+} @else if (!isLoading && !releaseRevisions) {
+<div class="center" style="height: 50vh;">
+  <mat-spinner></mat-spinner>
+</div>
+}
