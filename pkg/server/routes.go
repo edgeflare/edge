@@ -37,6 +37,9 @@ func RegisterHandlers(e *echo.Echo, c *config.Config) {
 			}))
 		}
 
+		// Websocket routes
+		api.GET("ws", handler.TerminalWebSocket)
+
 		// kubernetes resources
 		api.GET("api-resources", handler.ListAPIResources)
 		api.GET("namespaces", handler.GetNamespaces)
