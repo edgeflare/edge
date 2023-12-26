@@ -37,14 +37,6 @@ func RegisterHandlers(e *echo.Echo, c *config.Config) {
 			}))
 		}
 
-		// kubernetes resources
-		api.GET("api-resources", handler.ListAPIResources)
-		api.GET("namespaces", handler.GetNamespaces)
-		api.GET("namespaces/:namespace/:resourceType/:resourceName", handler.GetResources) // specific resource in specific namespace
-		api.GET("namespaces/:namespace/:resourceType", handler.GetResources)               // in specific namespace
-		api.POST("namespaces/:namespace/:resourceType/:resourceName", handler.ApplyResource)
-		api.DELETE("namespaces/:namespace/:resourceType/:resourceName", handler.DeleteResource)
-
 		// k3s clusters
 		cluster := api.Group("clusters")
 		{
@@ -70,7 +62,16 @@ func RegisterHandlers(e *echo.Echo, c *config.Config) {
 		api.GET("helmcharts", handler.ListHelmChartReleases) // all namespaces
 		api.GET("namespaces/:namespace/helmcharts", handler.ListHelmChartReleases)
 		api.GET("namespaces/:namespace/helmcharts/:releaseName", handler.GetHelmChartRelease)
+		api.GET("namespaces/:namespace/helmcharts/:releaseName/history", handler.GetChartReleaseHistory)
 		api.GET("namespaces/:namespace/helmcharts/:releaseName/workloads", handler.GetHelmChartReleaseWithWorkloads)
+
+		// kubernetes resources
+		api.GET("api-resources", handler.ListAPIResources)
+		api.GET("namespaces", handler.GetNamespaces)
+		api.GET("namespaces/:namespace/:resourceType/:resourceName", handler.GetResources) // specific resource in specific namespace
+		api.GET("namespaces/:namespace/:resourceType", handler.GetResources)               // in specific namespace
+		api.POST("namespaces/:namespace/:resourceType/:resourceName", handler.ApplyResource)
+		api.DELETE("namespaces/:namespace/:resourceType/:resourceName", handler.DeleteResource)
 
 		// charts catalog
 		repo := api.Group("catalog/helm/repos")

@@ -47,3 +47,16 @@ func GetHelmChartReleaseWithWorkloads(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, resources)
 }
+
+func GetChartReleaseHistory(c echo.Context) error {
+	namespace := c.Param("namespace")
+	releaseName := c.Param("releaseName")
+
+	releases, err := kube.GetChartReleaseHistory(namespace, releaseName)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": err.Error(),
+		})
+	}
+	return c.JSON(http.StatusOK, releases)
+}

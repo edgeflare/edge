@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"sync"
 
 	"go.uber.org/zap"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"sigs.k8s.io/yaml"
 
@@ -306,4 +308,31 @@ func extractMetadata(resourceMap map[string]interface{}) (string, string, error)
 	}
 
 	return name, namespace, nil
+}
+
+func GetChartReleaseHistory(namespace, releaseName string) ([]*release.Release, error) {
+	actionConfig, err := SetupHelmConfiguration(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = actionConfig.Init(cli.New().RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+		log.Fatal(err)
+	}
+
+	historyClient := action.NewHistory(actionConfig)
+	historyClient.Max = 10 // Fetch last 10 revisions
+
+	// Fetch history
+	releases, err := historyClient.Run(releaseName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// for i := range releases {
+	// 	fmt.Printf("Revision: %d, Updated: %s, Status: %s, Chart: %s, App Version: %s\n",
+	// 		releases[i].Version, releases[i].Info.LastDeployed, releases[i].Info.Status, releases[i].Chart.Metadata.Name, releases[i].Chart.Metadata.AppVersion)
+	// }
+
+	return releases, nil
 }
