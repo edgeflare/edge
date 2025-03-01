@@ -80,7 +80,7 @@ This uses iam.example.local and api.example.local domains. Ensure they point to 
 
 ## Use the centralized IdP for authorization in Postgres via PostgREST API
 
-Any OIDC compliant Identy Provider (eg ZITADEL, Keycloak, Auth0) can be used.
+Any OIDC compliant Identity Provider (eg ZITADEL, Keycloak, Auth0) can be used.
 
 ```sh
 export CONN_STRING="host=$PGHOST port=$PGPORT user=$PGUSER password=$PGPASSWORD dbname=$PGDATABASE sslmode=require"
