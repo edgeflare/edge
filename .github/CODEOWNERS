@@ -1,0 +1,8 @@
+# .github/CODEOWNERS
+* @hmoazzem
+
+# Go code
+*.go @hmoazzem
+
+# CI/CD
+.github/workflows/ @hmoazzem

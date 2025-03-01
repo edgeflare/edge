@@ -1,0 +1,289 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "zitadel": {
+      "type": "object",
+      "title": "ZITADEL Configuration",
+      "form": true,
+      "properties": {
+        "configmapConfig": {
+          "type": "object",
+          "title": "ConfigMap Configuration",
+          "description": "The ZITADEL config under configmapConfig is written to a Kubernetes ConfigMap",
+          "form": true
+        },
+        "secretConfig": {
+          "type": "object",
+          "title": "Secret Configuration",
+          "description": "The ZITADEL config under secretConfig is written to a Kubernetes Secret",
+          "form": true
+        },
+        "masterkeySecretName": {
+          "type": "string",
+          "title": "Master Key Secret Name",
+          "description": "Reference the name of the secret that contains the masterkey. The key should be named 'masterkey'",
+          "form": true
+        },
+        "dbSslCaCrt": {
+          "type": "string",
+          "title": "Database SSL CA Certificate",
+          "description": "The CA Certificate needed for establishing secure database connections",
+          "form": true
+        },
+        "selfSignedCert": {
+          "type": "object",
+          "title": "Self-Signed Certificate",
+          "description": "Generate a self-signed certificate using an init container",
+          "form": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "Enable Self-Signed Certificate",
+              "form": true
+            },
+            "additionalDnsName": {
+              "type": "string",
+              "title": "Additional DNS Name",
+              "description": "Add an additional DNS name to the self-signed certificate",
+              "form": true
+            }
+          }
+        },
+        "debug": {
+          "type": "object",
+          "title": "Debug Configuration",
+          "description": "Enable debug pod for troubleshooting",
+          "form": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "Enable Debug Pod",
+              "description": "Create a debug pod for inspecting ZITADEL configuration",
+              "form": true
+            }
+          }
+        }
+      }
+    },
+    "replicaCount": {
+      "type": "integer",
+      "title": "Replica Count",
+      "description": "Number of ZITADEL pods to deploy",
+      "form": true,
+      "minimum": 1
+    },
+    "image": {
+      "type": "object",
+      "title": "Container Image Configuration",
+      "form": true,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "title": "Image Repository",
+          "form": true
+        },
+        "pullPolicy": {
+          "type": "string",
+          "title": "Image Pull Policy",
+          "form": true,
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ]
+        },
+        "tag": {
+          "type": "string",
+          "title": "Image Tag",
+          "description": "Overrides the image tag whose default is the chart appVersion",
+          "form": true
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "title": "Service Configuration",
+      "form": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "Service Type",
+          "form": true,
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer"
+          ]
+        },
+        "port": {
+          "type": "integer",
+          "title": "Service Port",
+          "form": true
+        },
+        "protocol": {
+          "type": "string",
+          "title": "Service Protocol",
+          "form": true,
+          "enum": [
+            "http",
+            "http2"
+          ]
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "title": "Ingress Configuration",
+      "form": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enable Ingress",
+          "form": true
+        },
+        "className": {
+          "type": "string",
+          "title": "Ingress Class Name",
+          "form": true
+        },
+        "hosts": {
+          "type": "array",
+          "title": "Ingress Hosts",
+          "form": true,
+          "items": {
+            "type": "object",
+            "properties": {
+              "host": {
+                "type": "string",
+                "title": "Hostname",
+                "form": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "title": "Resource Requirements",
+      "description": "Configure CPU/Memory resource requests/limits",
+      "form": true,
+      "properties": {
+        "requests": {
+          "type": "object",
+          "properties": {
+            "memory": {
+              "type": "string",
+              "form": true,
+              "render": "slider",
+              "title": "Memory Request",
+              "sliderMin": 128,
+              "sliderMax": 4096,
+              "sliderUnit": "Mi"
+            },
+            "cpu": {
+              "type": "string",
+              "form": true,
+              "render": "slider",
+              "title": "CPU Request",
+              "sliderMin": 100,
+              "sliderMax": 2000,
+              "sliderUnit": "m"
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "memory": {
+              "type": "string",
+              "form": true,
+              "render": "slider",
+              "title": "Memory Limit",
+              "sliderMin": 128,
+              "sliderMax": 8192,
+              "sliderUnit": "Mi"
+            },
+            "cpu": {
+              "type": "string",
+              "form": true,
+              "render": "slider",
+              "title": "CPU Limit",
+              "sliderMin": 100,
+              "sliderMax": 4000,
+              "sliderUnit": "m"
+            }
+          }
+        }
+      }
+    },
+    "initJob": {
+      "type": "object",
+      "title": "Init Job Configuration",
+      "form": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enable Init Job",
+          "description": "Once ZITADEL is installed, the initJob can be disabled",
+          "form": true
+        },
+        "command": {
+          "type": "string",
+          "title": "Init Command",
+          "description": "Available init commands: empty (initialize ZITADEL instance), database, grant, user, zitadel",
+          "form": true,
+          "enum": [
+            "",
+            "database",
+            "grant",
+            "user",
+            "zitadel"
+          ]
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "title": "Metrics Configuration",
+      "form": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enable Metrics",
+          "form": true
+        },
+        "serviceMonitor": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "Enable ServiceMonitor",
+              "description": "Create ServiceMonitor resource for scraping metrics using Prometheus Operator",
+              "form": true
+            }
+          }
+        }
+      }
+    },
+    "pdb": {
+      "type": "object",
+      "title": "Pod Disruption Budget",
+      "form": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enable PDB",
+          "form": true
+        },
+        "minAvailable": {
+          "type": "integer",
+          "title": "Minimum Available Pods",
+          "form": true
+        }
+      }
+    }
+  }
+}
+

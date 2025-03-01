@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project Documentation
+    url: https://github.com/edgeflare/edge
+    about: Check if your issue is addressed in the documentation
+  - name: Discussions
+    url: https://github.com/edgeflare/edge/discussions
+    about: Please ask and answer questions here

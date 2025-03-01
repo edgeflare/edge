@@ -1,0 +1,11 @@
+apiVersion: edgeflare.io/v1alpha1
+kind: Project
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: edge
+  name: release-sample
+  database:
+    postgres:
+      release:
+        chartURL: registry-1.docker.io/bitnamicharts/postgresql:16.4.9
+        # valuesContent: ""

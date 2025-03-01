@@ -1,0 +1,5 @@
+## Append samples of your project ##
+resources:
+- helm_v1alpha1_release.yaml
+- v1alpha1_project.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

@@ -1,0 +1,146 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - "main"
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  packages: write
+  checks: read
+  actions: read
+
+jobs:
+  verify-ci:
+    name: Verify CI Status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Get commit SHA
+        id: get-commit-sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Check CI status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const sha = '${{ steps.get-commit-sha.outputs.sha }}';
+            
+            try {
+              // Get the combined status for the commit
+              const { data: status } = await github.rest.repos.getCombinedStatusForRef({
+                owner,
+                repo,
+                ref: sha
+              });
+              
+              console.log(`Overall status: ${status.state}`);
+              
+              if (status.state !== 'success') {
+                core.setFailed(`CI checks have not passed for this commit. Status: ${status.state}`);
+              } else {
+                core.info('All CI checks passed for this commit');
+              }
+            } catch (error) {
+              console.log(`Error checking status: ${error.message}`);
+              
+              // Fallback to checking runs directly
+              const { data: checkRuns } = await github.rest.checks.listForRef({
+                owner,
+                repo,
+                ref: sha
+              });
+              
+              const failed = checkRuns.check_runs.some(run => run.conclusion !== 'success' && run.conclusion !== null);
+              
+              if (failed) {
+                core.setFailed('Some CI checks failed for this commit');
+              } else {
+                core.info('All CI checks appear to have passed');
+              }
+            }
+
+  setup-go:
+    name: Setup Go
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Clean Go modules
+        run: |
+          go clean -modcache || true
+          rm -rf ~/go/pkg/mod || true
+          mkdir -p ~/go/pkg/mod
+
+      - name: Go Info
+        run: |
+          go version
+          go env
+
+  release:
+    name: Release
+    needs: [verify-ci, setup-go]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-release-${{ github.run_id }}-${{ hashFiles('**/go.sum') }}
+          save-always: true
+          
+      - name: Verify Go environment
+        run: |
+          go version
+          go env
+          
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+          
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: ${{ startsWith(github.ref, 'refs/tags/') && 'release --clean' || 'release --snapshot --clean' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

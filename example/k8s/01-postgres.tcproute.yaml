@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: example-postgresql-primary
+spec:
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: eg-default
+    namespace: envoy-gateway-system
+    sectionName: tcp-postgres-5432
+  rules:
+  - backendRefs:
+    - group: ""
+      kind: Service
+      name: example-postgres-postgresql-primary
+      port: 5432
+      weight: 1
+---

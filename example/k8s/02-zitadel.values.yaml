@@ -1,0 +1,66 @@
+# helm upgrade --install example-zitadel oci://registry-1.docker.io/edgeflare/zitadel -f example/k8s/02-zitadel.values.yaml 
+env:
+- name: ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      key: PGPASSWORD
+      name: example-pguser-postgres
+- name: ZITADEL_DATABASE_POSTGRES_USER_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      key: PGPASSWORD
+      name: example-pguser-zitadel
+- name: ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      key: ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD
+      name: example-zitadel-firstinstance
+- name: ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME
+  value: iam@example.local
+image:
+  repository: ghcr.io/zitadel/zitadel
+  tag: v2.70.0
+replicaCount: 3
+resources:
+  limits:
+    cpu: 500m
+    memory: 500Mi
+  requests:
+    cpu: 50m
+    memory: 125Mi
+zitadel:
+  configmapConfig:
+    Database:
+      Postgres:
+        Admin:
+          SSL:
+            Mode: require
+          Username: postgres
+        Database: main
+        Host: example-postgres-postgresql-primary
+        Port: 5432
+        User:
+          SSL:
+            Mode: require
+          Username: zitadel
+    ExternalDomain: iam.example.local
+    ExternalPort: 443
+    ExternalSecure: true
+    FirstInstance:
+      Org:
+        Machine:
+          Machine:
+            Name: Admin
+            Username: example-zitadel-admin-sa
+          MachineKey:
+            Type: 1
+    Machine:
+      Identification:
+        Hostname:
+          Enabled: true
+        Webhook:
+          Enabled: false
+    TLS:
+      Enabled: false
+  masterkeySecretName: example-zitadel-masterkey
+---
