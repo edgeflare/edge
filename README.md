@@ -1,5 +1,7 @@
 # DIY nocode backend around PostgreSQL on Kubernetes
 
+**What you think of a pocketbase (backend in a single binary), for Postgres?** Plesea [share your ideas](discussions).
+
 [![CI](https://github.com/edgeflare/edge/actions/workflows/ci.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/edgeflare/edge/actions/workflows/codeql.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/codeql.yml)
 [![Release](https://github.com/edgeflare/edge/actions/workflows/release.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/release.yml)
