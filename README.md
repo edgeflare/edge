@@ -1,5 +1,7 @@
 # DIY nocode backend around PostgreSQL on Kubernetes
 
+**What you think of a pocketbase (backend in a single binary), for Postgres?** Plesea [share your ideas](discussions).
+
 [![CI](https://github.com/edgeflare/edge/actions/workflows/ci.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/edgeflare/edge/actions/workflows/codeql.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/codeql.yml)
 [![Release](https://github.com/edgeflare/edge/actions/workflows/release.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/release.yml)
@@ -80,7 +82,7 @@ This uses iam.example.local and api.example.local domains. Ensure they point to 
 
 ## Use the centralized IdP for authorization in Postgres via PostgREST API
 
-Any OIDC compliant Identy Provider (eg ZITADEL, Keycloak, Auth0) can be used.
+Any OIDC compliant Identity Provider (eg ZITADEL, Keycloak, Auth0) can be used.
 
 ```sh
 export CONN_STRING="host=$PGHOST port=$PGPORT user=$PGUSER password=$PGPASSWORD dbname=$PGDATABASE sslmode=require"
