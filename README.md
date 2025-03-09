@@ -1,30 +1,30 @@
-# DIY nocode backend around PostgreSQL on Kubernetes
-
-**What you think of a pocketbase (backend in a single binary), for Postgres?** Plesea [share your ideas](discussions).
+# edge: pocketbase, for PostgreSQL. its components scale as containers
 
 [![CI](https://github.com/edgeflare/edge/actions/workflows/ci.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/edgeflare/edge/actions/workflows/codeql.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/codeql.yml)
 [![Release](https://github.com/edgeflare/edge/actions/workflows/release.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/release.yml)
 
-This is a work-in-progress kubebuilder-based operator that integrates and manages lifecycle of
+Edge configures and manages: 
+* [ZITADEL](https://github.com/zitadel/zitadel) - Centralized identity provider (OIDC)
+* [SeaweedFS](https://github.com/seaweedfs/seaweedfs) - S3-compatible object storage
+* [PGO](https://github.com/edgeflare/pgo) - PostgREST-compatible API and Debezium-compatible CDC
+* [NATS](https://nats.io) - Message streaming platform
 
-- [PostgreSQL database](https://www.postgresql.org)
-- [ZITADEL Identity Provider](https://github.com/zitadel/zitadel)
-- [PostgREST API](https://github.com/PostgREST/postgrest)
-- [SeaweedFS S3](https://github.com/seaweedfs/seaweedfs) (not integrated yet)
-- [edgeflare/pgo](https://github.com/edgeflare/pgo) (experimental) for realtime events etc
-- whatever extras you need... well it's on Kubernetes
+## How it works
 
-for a [Firebase](https://firebase.google.com)/[Supabase](https://supabase.com/)-like nocode backend.
-For now, you'd be better of installing the components as regular k8s resources as in this README.md.
-If you wanna experiment and possibly contribute, please see [CONTRIBUTING.md](./CONTRIBUTING.md).
+Edge launches and configures these components to work together as a unified backend with PostgreSQL - similar to Supabase or Pocketbase. And with scaling capabilities.
 
-The stack can be run as
-- [docker-compose.yaml](./example/docker-compose.yaml) (incomplete... no plan yet to improve)
-- Kubernetes resources: This README instructions
-- A [Project](./example/project.yaml) CRD: simplest, robust but not ready yet
+## Deployment options
 
-## Build your own nocode backend stack
+Edge can run as:
+- A single binary (embeds official component binaries)
+- [Docker compose](./example/docker-compose.yaml)
+- Kubernetes resources (follow this README)
+- Via a Kubernetes CRD named [Project](./example/project.yaml)
+
+This project is in the ideation stage. Edge configures/manages the four underlying tools to create a cohesive system.
+
+Interested in experimenting or contributing? See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ```sh
 git clone git@github.com:edgeflare/edge.git && cd edge
