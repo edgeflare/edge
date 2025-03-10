@@ -9,7 +9,7 @@ require (
 	github.com/onsi/gomega v1.36.2
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zitadel/oidc/v2 v2.12.2
-	github.com/zitadel/zitadel-go/v3 v3.4.2
+	github.com/zitadel/zitadel-go/v3 v3.4.3
 	go.uber.org/zap v1.27.0
 	google.golang.org/protobuf v1.36.5
 	helm.sh/helm/v3 v3.17.1
