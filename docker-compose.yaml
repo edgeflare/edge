@@ -42,18 +42,18 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: Password1!
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS: admin@iam.example.local
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: false
-      ## machine user (service-account). commenting below causes error
-      # ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH: /machinekey/zitadel-admin-sa.json
-      # ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: zitadel-admin-sa
-      # ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Admin
-      # ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_TYPE: 1
+      # machine user (service-account)
+      ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH: /machinekey/zitadel-admin-sa.json
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: zitadel-admin-sa
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Admin
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_TYPE: 1
     depends_on:
       auth-db:
         condition: service_healthy
-    ports:
-    - 8080:8080
+    # ports:
+    # - 80:8080
     volumes:
-    - auth-zitadel:/machinekey:rw
+    - $PWD/__zitadel-machinekey:/machinekey:rw,Z
 
   app-db:
     image: docker.io/bitnami/postgresql:17
@@ -140,14 +140,24 @@ services:
     command: [envoy, --config-path, /etc/bootstrap.yaml, --base-id, 1]
     privileged: true
     ports:
-    - 9901:9901   # admin
-    - 80:10080    # http-proxy
+    - 9901:9901      # admin
+    - 80:10080       # http-proxy
     volumes:
     - $PWD/internal/util/envoy/bootstrap.yaml:/etc/bootstrap.yaml:rw,Z
     depends_on:
     - envoy-controlplane
 
+  pgo-rest:
+    image: ghcr.io/edgeflare/pgo
+    command: [rest, --config, /rest/config.yaml]
+    ports:
+    - 8080:8080
+    volumes:
+    - $PWD/internal/util/pgo/config.yaml:/rest/config.yaml:rw,Z
+    depends_on:
+      app-db:
+        condition: service_healthy
+
 volumes:
   app-db:
   auth-db:
-  auth-zitadel:

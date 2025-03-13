@@ -27,7 +27,7 @@ var (
 	logger  *zap.Logger
 	issuer  = cmp.Or(os.Getenv("ZITADEL_ISSUER"), "http://iam.example.local")
 	api     = cmp.Or(os.Getenv("ZITADEL_API"), "iam.example.local:80")
-	keyPath = cmp.Or(os.Getenv("ZITADEL_KEY_PATH"), "__zitadel_admin-sa.json")
+	keyPath = cmp.Or(os.Getenv("ZITADEL_KEY_PATH"), "__zitadel-machinekey/zitadel-admin-sa.json")
 )
 
 const (
@@ -399,14 +399,14 @@ func createActionSetPolicies(ctx context.Context, client *management.Client) (*a
 	createdAction, err := client.CreateAction(ctx, &managementpb.CreateActionRequest{
 		Name: "setPolicies",
 		Script: `function setPolicies(ctx, api) {
-  policies = {
+  policy = {
     'pgrole': 'authn',
 	'postgres': 'authn',
     'mqtt': '',
     'minio': 'readwrite'
   }
   
-  api.v1.claims.setClaim('policies', policies)
+  api.v1.claims.setClaim('policy', policy)
 }
 `,
 		Timeout:       &durationpb.Duration{Seconds: 10},

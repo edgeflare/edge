@@ -38,8 +38,83 @@ This uses iam.example.local and api.example.local domains. Ensure they point to 
 
 ### [docker-compose.yaml](./docker-compose.yaml)
 
+Adjust the docker-compose.yaml
+
+- Free up port 80 from envoy for zitadel's initial configuration via management API which requires end-to-end HTTP/2 support.
+envoyproxy config in docker doesn't support (our xds-server incomplete) HTTP/2 yet; on [k8s](https://raw.githubusercontent.com/edgeflare/pgo/refs/heads/main/k8s.yaml) everything works fine.
+
+```yaml
+  envoy:
+    ports:
+    - 9901:9901
+    # - 80:10080 # or use eg 10080:10080
+```
+
+- Expose ZITADEL on port 80, by uncommenting
+
+```yaml
+    ports:
+    - 80:8080
+```
+
 ```sh
 docker compose up -d
+```
+
+#### Use the centralized IdP for authorization in Postgres via `pgo rest` (PostgREST API)
+
+Any OIDC compliant Identity Provider (eg ZITADEL, Keycloak, Auth0) can be used.
+
+```sh
+export ZITADEL_ISSUER=http://iam.example.local
+export ZITADEL_API=iam.example.local:80
+export ZITADEL_KEY_PATH=__zitadel-machinekey/zitadel-admin-sa.json
+export ZITADEL_JWK_URL=http://iam.example.local/oauth/v2/keys
+```
+
+Configure components eg create OIDC clients in ZITADEL etc
+
+```sh
+go run ./internal/util/configure/...
+```
+
+Once done, revert the ports (use 80 for envoy), and `docker compose restart`
+
+#### pgo rest
+
+Visit http://iam.example.local, login and regenerate client-secret for oauth2-proxy client in edge project. Then adjust `internal/util/pgo/config.yaml`
+
+> `pgo rest` container fails because of proxy issues. It can be run locally
+
+```sh
+go install github.com/edgeflare/pgo@latest # or download from release page
+```
+##### PostgREST-compatible REST API
+
+```sh
+pgo rest --config internal/util/pgo/config.yaml --rest.pg_conn_string "host=localhost port=5432 user=pgo password=pgopw dbname=main sslmode=prefer"
+```
+
+###### realtime/replication eg sync users from auth-db to app-db
+
+Create table in sink-db. See pgo repo for more examples
+
+```sh
+PGUSER=postgres PGPASSWORD=postgrespw PGHOST=localhost PGDATABASE=main PGPORT=5432 psql
+```
+
+```sql
+CREATE SCHEMA IF NOT EXISTS iam;
+
+CREATE TABLE IF NOT EXISTS iam.users (
+  id TEXT DEFAULT gen_random_uuid()::TEXT PRIMARY KEY
+);
+```
+
+Start pipeline
+
+```sh
+pgo pipeline --config internal/util/pgo/config.yaml
 ```
 
 ### Kubernetes
@@ -60,27 +135,14 @@ helm upgrade --install example-zitadel oci://registry-1.docker.io/edgeflare/zita
 kubectl apply -f example/k8s/02-zitadel.httproute.yaml
 ```
 
-## Use the centralized IdP for authorization in Postgres via PostgREST API
-
-Any OIDC compliant Identity Provider (eg ZITADEL, Keycloak, Auth0) can be used.
-
 ```sh
-export CONN_STRING="host=$PGHOST port=$PGPORT user=$PGUSER password=$PGPASSWORD dbname=$PGDATABASE sslmode=require"
+kubectl get secrets zitadel-admin-sa -o jsonpath='{.data.zitadel-admin-sa\.json}' | base64 -d > __zitadel-machinekey/zitadel-admin-sa.json
 
-kubectl get secrets zitadel-admin-sa -o jsonpath='{.data.zitadel-admin-sa\.json}' | base64 -d > __zitadel-admin-sa.json
-
-export ZITADEL_ISSUER=http://iam.example.local # Why HTTPS? See https://discord.com/channels/927474939156643850/1343884049726312509
-export ZITADEL_API=iam.example.local:80
-export ZITADEL_KEY_PATH=__zitadel-admin-sa.json
-export ZITADEL_JWK_URL=http://iam.example.local/oauth/v2/keys
 export ZITADEL_ADMIN_PW=$(kubectl get secrets example-zitadel-firstinstance -o jsonpath='{.data.ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD}' | base64 -d)
 ```
 
-Create OIDC clients etc, and refresh issuer JWK in database (for PostgREST). Look up the code and [https://github.com/PostgREST/postgrest/issues/1130](https://github.com/PostgREST/postgrest/issues/1130) to see what it does and why.
+Configure zitadel like in docker-compose. Then apply something like `https://raw.githubusercontent.com/edgeflare/pgo/refs/heads/main/k8s.yaml`
 
-```sh
-go run ./hack/cmdext/...
-```
 
 ## Cleanup
 
