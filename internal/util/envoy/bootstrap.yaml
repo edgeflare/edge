@@ -1,0 +1,44 @@
+node:
+  id: "localhost"
+  cluster: "default_cluster"
+admin:
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 9901
+
+dynamic_resources:
+  ads_config:
+    api_type: GRPC
+    transport_api_version: V3
+    grpc_services:
+    - envoy_grpc:
+        cluster_name: xds_cluster
+  cds_config:
+    resource_api_version: V3
+    ads: {}
+  lds_config:
+    resource_api_version: V3
+    ads: {}
+static_resources:
+  clusters:
+  - name: xds_cluster
+    connect_timeout: 0.25s
+    type: LOGICAL_DNS # STRICT_DNS for IP
+    lb_policy: ROUND_ROBIN
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options: {}
+    load_assignment:
+      cluster_name: xds_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                # controlplane hostname/ip:port
+                # address: 0.0.0.0              # for debugging/developing locally
+                address: envoy-controlplane     # container env
+                port_value: 18000

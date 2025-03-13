@@ -7,9 +7,9 @@
 Edge configures and manages: 
 * [ZITADEL](https://github.com/zitadel/zitadel) - Centralized identity provider (OIDC)
 * [SeaweedFS](https://github.com/seaweedfs/seaweedfs) - S3-compatible object storage
-* [PGO](https://github.com/edgeflare/pgo) - PostgREST-compatible API and Debezium-compatible CDC
+* [edgeflare/pgo](https://github.com/edgeflare/pgo) - PostgREST-compatible API and Debezium-compatible CDC
 * [NATS](https://nats.io) - Message streaming platform
-
+* [envoyproxy](https://github.com/envoyproxy/envoy) - Cloud-native high-performance edge/middle/service proxy
 ## How it works
 
 Edge launches and configures these components to work together as a unified backend with PostgreSQL - similar to Supabase or Pocketbase. And with scaling capabilities.
@@ -18,7 +18,7 @@ Edge launches and configures these components to work together as a unified back
 
 Edge can run as:
 - A single binary (embeds official component binaries)
-- [Docker compose](./example/docker-compose.yaml)
+- [Docker compose](./docker-compose.yaml)
 - Kubernetes resources (follow this README)
 - Via a Kubernetes CRD named [Project](./example/project.yaml)
 
@@ -30,6 +30,19 @@ Interested in experimenting or contributing? See [CONTRIBUTING.md](./CONTRIBUTIN
 git clone git@github.com:edgeflare/edge.git && cd edge
 ```
 
+This uses iam.example.local and api.example.local domains. Ensure they point to the Gateway IP (envoyproxy) eg by adding an entry to `/etc/hosts` like
+
+```sh
+127.0.0.1 api.example.local iam.example.local
+```
+
+### [docker-compose.yaml](./docker-compose.yaml)
+
+```sh
+docker compose up -d
+```
+
+### Kubernetes
 If you already have a live k8s cluster, great just copy-paste-enter.
 For development and lightweight prod, [k3s](https://github.com/k3s-io/k3s) seems a great option.
 See [example/cluster](./example/cluster) for cluster setup.
@@ -45,39 +58,6 @@ kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=example-pos
 # AuthN / AuthZ: ZITADEL
 helm upgrade --install example-zitadel oci://registry-1.docker.io/edgeflare/zitadel -f example/k8s/02-zitadel.values.yaml
 kubectl apply -f example/k8s/02-zitadel.httproute.yaml
-```
-
-Before installing PostgREST (for REST API), we gotta to create required roles. First set the libpq env vars for `psql`
-
-```sh
-export PGPASSWORD=$(kubectl -n default get secrets example-pguser-postgres -o jsonpath={.data.PGPASSWORD} | base64 -d)
-export PGDATABASE=main
-export PGUSER=postgres
-export PGPORT=5432
-export PGSSLMODE=require
-export PGHOST=$(kubectl -n envoy-gateway-system get gateway eg-default -o jsonpath='{.status.addresses[0].value}')  # something like 192.168.0.17 
-```
-
-And exec into `psql` console below SQL
-
-```sql
-CREATE ROLE anon;       -- for anonymous / public access
-CREATE ROLE authn;      -- for authenticated users. RLS or authz-proxy for granular authorization
-CREATE ROLE postgrest LOGIN PASSWORD 'postgrestpw';
-GRANT anon TO authn;
-GRANT authn TO postgrest;
-```
-
-Now install PostgREST
-
-```sh
-kubectl apply -f example/k8s/03-postgrest.yaml
-```
-
-This uses iam.example.local and api.example.local domains. Ensure they point to the Gateway IP (could be same as $PGHOST) eg by adding an entry to `/etc/hosts` like
-
-```sh
-192.168.0.17 api.example.local iam.example.local
 ```
 
 ## Use the centralized IdP for authorization in Postgres via PostgREST API
