@@ -25,8 +25,8 @@ import (
 
 var (
 	logger  *zap.Logger
-	issuer  = cmp.Or(os.Getenv("ZITADEL_ISSUER"), "http://iam.example.local")
-	api     = cmp.Or(os.Getenv("ZITADEL_API"), "iam.example.local:80")
+	issuer  = cmp.Or(os.Getenv("ZITADEL_ISSUER"), "http://iam.127-0-0-1.sslip.io")
+	api     = cmp.Or(os.Getenv("ZITADEL_API"), "iam.127-0-0-1.sslip.io:80")
 	keyPath = cmp.Or(os.Getenv("ZITADEL_KEY_PATH"), "__zitadel-machinekey/zitadel-admin-sa.json")
 )
 
@@ -34,7 +34,8 @@ const (
 	EDGE_PROJECT_NAME       = "edge"
 	OIDC_CLIENT_EDGE        = "edge-ui"
 	OIDC_CLIENT_OAUTH2PROXY = "oauth2-proxy"
-	// OIDC_CLIENT_S3          = "seaweedfs"
+	OIDC_CLIENT_MINIO       = "minio"
+	OIDC_CLIENT_S3          = "seaweedfs"
 )
 
 func init() {
@@ -89,11 +90,11 @@ func Configure() {
 	}
 	logger.Info("ensured OAuth2 Proxy app", zap.Any("app", oauth2ProxyApp))
 
-	// minioClientApp, err := ensureMinioClientApp(ctx, client, createdProject.Id)
-	// if err != nil {
-	// 	logger.Fatal("failed to ensure MinIO client app", zap.Error(err))
-	// }
-	// logger.Info("ensured MinIO client app", zap.Any("app", minioClientApp))
+	minioClientApp, err := ensureMinioClientApp(ctx, client, createdProject.Id)
+	if err != nil {
+		logger.Fatal("failed to ensure MinIO client app", zap.Error(err))
+	}
+	logger.Info("ensured MinIO client app", zap.Any("app", minioClientApp))
 }
 
 func createZitadelClient(issuer, api string) (*management.Client, error) {
@@ -448,6 +449,55 @@ func setTriggers(ctx context.Context, client *management.Client, actionIds []str
 		return err
 	}
 	return nil
+}
+
+func ensureMinioClientApp(ctx context.Context, client *management.Client, projectID string) (*app.App, error) {
+	apps, err := listApps(ctx, client, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, app := range apps {
+		if app.Name == OIDC_CLIENT_MINIO {
+			return app, nil
+		}
+	}
+
+	// Create OIDC app for MinIO
+	createdMinioApp, err := client.AddOIDCApp(ctx, &managementpb.AddOIDCAppRequest{
+		ProjectId: projectID,
+		Name:      OIDC_CLIENT_MINIO,
+		RedirectUris: []string{
+			// TODO: don't hardcode
+			"http://127.0.0.1:9001/oauth_callback",
+			"http://minio.127-0-0-1.sslip.io/oauth_callback",
+		},
+		ResponseTypes: []app.OIDCResponseType{app.OIDCResponseType_OIDC_RESPONSE_TYPE_CODE},
+		GrantTypes: []app.OIDCGrantType{
+			app.OIDCGrantType_OIDC_GRANT_TYPE_AUTHORIZATION_CODE,
+			app.OIDCGrantType_OIDC_GRANT_TYPE_REFRESH_TOKEN,
+		},
+		AppType: app.OIDCAppType_OIDC_APP_TYPE_WEB,
+
+		AuthMethodType: app.OIDCAuthMethodType_OIDC_AUTH_METHOD_TYPE_BASIC,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	createdApp, err := client.GetAppByID(ctx, &managementpb.GetAppByIDRequest{
+		ProjectId: projectID,
+		AppId:     createdMinioApp.AppId,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return createdApp.App, nil
 }
 
 /*

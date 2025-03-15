@@ -53,6 +53,38 @@ static_resources:
                 allow_headers: keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout
                 max_age: "1728000"
                 expose_headers: custom-header-1,grpc-status,grpc-message
+            - name: minio_console_service
+              domains: ["minio.127-0-0-1.sslip.io"]
+              routes:
+              - match: { prefix: "/" }
+                route:
+                  cluster: minio_console_service
+                  timeout: 0s
+                  max_stream_duration:
+                    grpc_timeout_header_max: 0s
+              cors:
+                allow_origin_string_match:
+                - prefix: "*"
+                allow_methods: GET, PUT, DELETE, POST, OPTIONS
+                allow_headers: keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout
+                max_age: "1728000"
+                expose_headers: custom-header-1,grpc-status,grpc-message
+            - name: minio_s3_service
+              domains: ["s3.127-0-0-1.sslip.io"]
+              routes:
+              - match: { prefix: "/" }
+                route:
+                  cluster: minio_s3_service
+                  timeout: 0s
+                  max_stream_duration:
+                    grpc_timeout_header_max: 0s
+              cors:
+                allow_origin_string_match:
+                - prefix: "*"
+                allow_methods: GET, PUT, DELETE, POST, OPTIONS
+                allow_headers: keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout
+                max_age: "1728000"
+                expose_headers: custom-header-1,grpc-status,grpc-message
           http_filters:
           - name: envoy.filters.http.grpc_web
             typed_config:
@@ -72,7 +104,6 @@ static_resources:
       envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
         "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
         explicit_http_config:
-          # http_protocol_options: {}
           http2_protocol_options: {}
     lb_policy: round_robin
     load_assignment:
@@ -84,7 +115,6 @@ static_resources:
               socket_address:
                 address: iam-zitadel
                 port_value: 8080
-
   - name: pgo_rest_service
     connect_timeout: 0.25s
     type: LOGICAL_DNS
@@ -93,7 +123,6 @@ static_resources:
         "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
         explicit_http_config:
           http_protocol_options: {}
-          # http2_protocol_options: {}
     lb_policy: round_robin
     load_assignment:
       cluster_name: pgo_rest_cluster
@@ -104,3 +133,39 @@ static_resources:
               socket_address:
                 address: pgo-rest
                 port_value: 8080
+  - name: minio_console_service
+    connect_timeout: 0.25s
+    type: LOGICAL_DNS
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http_protocol_options: {}
+    lb_policy: round_robin
+    load_assignment:
+      cluster_name: minio_console_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: minio
+                port_value: 9001
+  - name: minio_s3_service
+    connect_timeout: 0.25s
+    type: LOGICAL_DNS
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http_protocol_options: {}
+    lb_policy: round_robin
+    load_assignment:
+      cluster_name: minio_s3_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: minio
+                port_value: 9000

@@ -76,7 +76,7 @@ services:
   envoy-controlplane:
     build:
       context: "."
-      dockerfile: "./internal/util/envoy/Containerfile"
+      dockerfile: "./internal/stack/envoy/Containerfile"
     entrypoint: /envoy-controlplane
     ports:
     - 18000:18000 # xds-server
@@ -92,8 +92,8 @@ services:
     - 9901:9901      # admin
     - 80:10080       # http-proxy
     volumes:
-    # - $PWD/internal/util/envoy/bootstrap.yaml:/etc/bootstrap.yaml:rw,Z   # when used with envoy-controlplane
-    - $PWD/internal/util/envoy/config.yaml:/etc/config.yaml:rw,Z           # hard-coded config
+    # - $PWD/internal/stack/envoy/bootstrap.yaml:/etc/bootstrap.yaml:rw,Z   # when used with envoy-controlplane
+    - $PWD/internal/stack/envoy/config.yaml:/etc/config.yaml:rw,Z           # hard-coded config
     depends_on:
     - envoy-controlplane
 
@@ -103,7 +103,7 @@ services:
     ports:
     - 8080:8080
     volumes:
-    - $PWD/internal/util/pgo/config.yaml:/rest/config.yaml:rw,Z
+    - $PWD/internal/stack/pgo/config.yaml:/rest/config.yaml:rw,Z
     depends_on:
       app-db:
         condition: service_healthy
@@ -114,12 +114,47 @@ services:
     image: ghcr.io/edgeflare/pgo
     command: [pipeline, --config, /pipeline/config.yaml]
     volumes:
-    - $PWD/internal/util/pgo/config.yaml:/pipeline/config.yaml:rw,Z
+    - $PWD/internal/stack/pgo/config.yaml:/pipeline/config.yaml:rw,Z
     depends_on:
       auth-db:
         condition: service_healthy
       app-db:
         condition: service_healthy
+
+  minio:
+    image: quay.io/minio/minio
+    command: [server, --console-address, ":9001"]
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minio-secret-key-change-me
+      MINIO_VOLUMES: /mnt/data
+      MINIO_BROWSER_REDIRECT_URL: http://minio.127-0-0-1.sslip.io
+      # OIDC
+      MINIO_IDENTITY_OPENID_CLIENT_ID: "311219429557993516"
+      MINIO_IDENTITY_OPENID_CLIENT_SECRET: "PdcOM6b3h2pcdAVc3es83PY62EVLATiMjQrela1IYChAhTbkr1RX5MNqCvMMLauw"
+      MINIO_IDENTITY_OPENID_DISPLAY_NAME: "Login with SSO"
+      MINIO_IDENTITY_OPENID_CONFIG_URL: http://iam.192-168-0-121.sslip.io/.well-known/openid-configuration
+      MINIO_IDENTITY_OPENID_CLAIM_NAME: policy_minio
+      MINIO_IDENTITY_OPENID_REDIRECT_URI_DYNAMIC: on
+      MINIO_IDENTITY_OPENID_CLAIM_USERINFO: on
+      MINIO_IDENTITY_OPENID_COMMENT: "OIDC Identity Provider"
+      # notify postgres
+      MINIO_NOTIFY_POSTGRES_ENABLE: on
+      MINIO_NOTIFY_POSTGRES_CONNECTION_STRING: "host=app-db port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer" 
+      MINIO_NOTIFY_POSTGRES_FORMAT: namespace
+      MINIO_NOTIFY_POSTGRES_ID: minioevents
+      MINIO_NOTIFY_POSTGRES_TABLE: minioevents
+    volumes:
+    - minio:/mnt/data
+    ports:
+    - 9000:9000
+    - 9001:9001
+    depends_on:
+      app-db:
+        condition: service_healthy
+      iam-zitadel:
+        condition: service_healthy
+      # should also wait for initdb, zitadel client creation
 
   init-app-db:
     image: docker.io/bitnami/postgresql:17
@@ -167,11 +202,26 @@ services:
           END IF;
           GRANT anon TO authn;
           GRANT authn to pgo;
+          IF NOT EXISTS (
+            SELECT 1
+            FROM pg_roles
+            WHERE rolname = 'minio'
+          ) THEN
+            CREATE ROLE minio WITH LOGIN PASSWORD 'miniopw';
+          END IF;
         END
         \$\$;
+
+        CREATE TABLE IF NOT EXISTS public.minioevents (
+          key CHARACTER VARYING PRIMARY KEY
+        );
+        
+        GRANT USAGE ON SCHEMA public to minio;
+        GRANT ALL PRIVILEGES ON TABLE public.minioevents TO minio;
       "
     restart: on-failure
 
 volumes:
   app-db:
   auth-db:
+  minio:

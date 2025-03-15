@@ -7,11 +7,11 @@
 edge configures and manages:
 
 * [PostgreSQL](https://www.postgresql.org/): The world's most advanced open source database
-* [ZITADEL](https://github.com/zitadel/zitadel) - Centralized identity provider (OIDC)
-* [SeaweedFS](https://github.com/seaweedfs/seaweedfs) - S3-compatible object storage
-* [edgeflare/pgo](https://github.com/edgeflare/pgo) - PostgREST-compatible API and Debezium-compatible CDC
-* [NATS](https://nats.io) - Message streaming platform
-* [envoyproxy](https://github.com/envoyproxy/envoy) - Cloud-native high-performance edge/middle/service proxy
+* [ZITADEL](https://github.com/zitadel/zitadel): Centralized identity provider (OIDC)
+* [MinIO](https://github.com/minio/minio) / [SeaweedFS](https://github.com/seaweedfs/seaweedfs): S3-compatible object storage
+* [NATS](https://nats.io): Message streaming platform
+* [envoy](https://github.com/envoyproxy/envoy): Cloud-native high-performance edge/middle/service proxy
+* [edgeflare/pgo](https://github.com/edgeflare/pgo): PostgREST-compatible API and Debezium-compatible CDC
 
 for a unified backend - similar to Firebase, Supabase, Pocketbase etc. And with scaling capabilities.
 
@@ -54,7 +54,7 @@ docker compose up -d
 
 #### Use the centralized IdP for authorization in Postgres via `pgo rest` (PostgREST API)
 
-Configure ZITADEL. Adjust the domain in env vars, and in `internal/util/envoy/config.yaml`
+Configure ZITADEL. Adjust the domain in env vars, and in `internal/stack/envoy/config.yaml`
 
 ```sh
 export ZITADEL_HOSTNAME=iam.192-168-0-121.sslip.io
@@ -65,14 +65,14 @@ export ZITADEL_JWK_URL=http://$ZITADEL_HOSTNAME/oauth/v2/keys
 ```
 
 ```sh
-go run ./internal/util/configure/...
+go run ./internal/stack/configure/...
 ```
 
 The above go code creates, among others, an OIDC client which pgo uses for authN/authZ. Any OIDC compliant Identity Provider (eg , Keycloak, Auth0) can be used; pgo just needs the client credentials.
 
 Once ZITADEL is configured, revert the ports (use 80 for envoy), and `docker compose down && docker compose up -d`
 
-Visit ZITADEL UI (eg at http://iam.192-168-0-121.sslip.io), login (see docker-compose.yaml) and regenerate client-secret for oauth2-proxy client in edge project. Then update `internal/util/pgo/config.yaml` with the values. Again, `docker compose down && docker compose up -d`
+Visit ZITADEL UI (eg at http://iam.192-168-0-121.sslip.io), login (see docker-compose.yaml) and regenerate client-secret for oauth2-proxy client in edge project. Then update `internal/stack/pgo/config.yaml` with the values. Again, `docker compose down && docker compose up -d`
 
 #### `pgo rest`: PostgREST-compatible REST API
 

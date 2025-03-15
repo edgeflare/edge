@@ -5,7 +5,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/edgeflare/edge/internal/util/envoy/controlplane"
+	"github.com/edgeflare/edge/internal/stack/envoy/controlplane"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/test/v3"

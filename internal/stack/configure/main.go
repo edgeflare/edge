@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/edgeflare/edge/internal/util/zitadel"
+	"github.com/edgeflare/edge/internal/stack/zitadel"
 )
 
 func main() {
