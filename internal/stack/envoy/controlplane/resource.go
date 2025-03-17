@@ -1,6 +1,9 @@
 package controlplane
 
 import (
+	"cmp"
+	"fmt"
+	"os"
 	"time"
 
 	"google.golang.org/protobuf/types/known/anypb"
@@ -24,8 +27,11 @@ const (
 	ListenerName    = "listener_0"
 	ListenerPort    = 10080
 	ZitadelPort     = 8080
-	ZitadelHostname = "iam.example.local"
 	ZitadelUpstream = "iam-zitadel"
+)
+
+var (
+	RootDomain = cmp.Or(os.Getenv("EDGE_DOMAIN_ROOT"), "127-0-0-1.sslip.io")
 )
 
 func makeCluster(clusterName string) *cluster.Cluster {
@@ -70,7 +76,7 @@ func makeRoute(routeName, clusterName string) *route.RouteConfiguration {
 		VirtualHosts: []*route.VirtualHost{{
 			Name: "local_service",
 			// Domains: []string{"*"},
-			Domains: []string{ZitadelHostname},
+			Domains: []string{fmt.Sprintf("iam.%s", RootDomain)},
 			Routes: []*route.Route{{
 				Match: &route.RouteMatch{
 					PathSpecifier: &route.RouteMatch_Prefix{
@@ -83,7 +89,7 @@ func makeRoute(routeName, clusterName string) *route.RouteConfiguration {
 							Cluster: clusterName,
 						},
 						HostRewriteSpecifier: &route.RouteAction_HostRewriteLiteral{
-							HostRewriteLiteral: ZitadelHostname,
+							HostRewriteLiteral: fmt.Sprintf("iam.%s", RootDomain),
 						},
 					},
 				},

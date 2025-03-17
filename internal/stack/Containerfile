@@ -1,0 +1,24 @@
+FROM docker.io/golang:1.24 AS builder
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /workspace
+
+COPY ./go.mod go.mod
+COPY ./go.sum go.sum
+RUN go mod download
+
+COPY ./internal/stack internal/stack
+
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o edge ./internal/stack
+
+# runtime image
+FROM docker.io/alpine:3.21
+RUN adduser -D -h /workspace 1000
+COPY --from=builder /workspace/edge /edge
+USER 1000
+WORKDIR /workspace
+EXPOSE 8081
+EXPOSE 18000
+ENTRYPOINT ["/edge"]
+CMD ["serve"]

@@ -25,9 +25,9 @@ import (
 
 var (
 	logger  *zap.Logger
-	issuer  = cmp.Or(os.Getenv("ZITADEL_ISSUER"), "http://iam.127-0-0-1.sslip.io")
-	api     = cmp.Or(os.Getenv("ZITADEL_API"), "iam.127-0-0-1.sslip.io:80")
-	keyPath = cmp.Or(os.Getenv("ZITADEL_KEY_PATH"), "__zitadel-machinekey/zitadel-admin-sa.json")
+	issuer  = cmp.Or(os.Getenv("EDGE_IAM_ZITADEL_ISSUER"), fmt.Sprintf("http://iam.%s", os.Getenv("EDGE_DOMAIN_ROOT")))
+	api     = cmp.Or(os.Getenv("EDGE_IAM_ZITADEL_API"), fmt.Sprintf("iam.%s:80", os.Getenv("EDGE_DOMAIN_ROOT")))
+	keyPath = cmp.Or(os.Getenv("EDGE_IAM_ZITADEL_MACHINEKEYPATH"), "/zitadel/admin-sa.json")
 )
 
 const (
@@ -111,38 +111,44 @@ func createZitadelClient(issuer, api string) (*management.Client, error) {
 		return nil, err
 	}
 
-	/*
-		// load self-signed certificate
-		caCert, err := os.ReadFile("gw.tls.crt")
-		if err != nil {
-			return nil, fmt.Errorf("error reading CA certificate: %v", err)
-		}
-
-		// create a certificate pool and add the cert
-		certPool := x509.NewCertPool()
-		if ok := certPool.AppendCertsFromPEM(caCert); !ok {
-			return nil, fmt.Errorf("failed to append certificate to pool")
-		}
-
-		// create TLS credentials with the custom cert pool
-		creds := credentials.NewTLS(&tls.Config{
-			RootCAs: certPool,
-		})
-
-		// create the client with custom dial options including the TLS credentials
-		client, err = management.NewClient(
-			ctx,
-			issuer,
-			api,
-			[]string{oidc.ScopeOpenID, zitadel.ScopeZitadelAPI()},
-			zitadel.WithJWTProfileTokenSource(middleware.JWTProfileFromPath(ctx, keyPath)),
-			zitadel.WithDialOptions(
-				grpc.WithTransportCredentials(creds),
-			),
-		)
-	*/
-
 	return client, nil
+
+	/*
+	   // load self-signed certificate: errors
+	   //
+	   caCert, err := os.ReadFile("gw.tls.crt")
+
+	   	if err != nil {
+	   		return nil, fmt.Errorf("error reading CA certificate: %v", err)
+	   	}
+
+	   // create a certificate pool and add the cert
+	   certPool := x509.NewCertPool()
+
+	   	if ok := certPool.AppendCertsFromPEM(caCert); !ok {
+	   		return nil, fmt.Errorf("failed to append certificate to pool")
+	   	}
+
+	   // create TLS credentials with the custom cert pool
+
+	   	creds := credentials.NewTLS(&tls.Config{
+	   		RootCAs: certPool,
+	   	})
+
+	   // create the client with custom dial options including the TLS credentials
+	   client, err = management.NewClient(
+
+	   	ctx,
+	   	issuer,
+	   	api,
+	   	[]string{oidc.ScopeOpenID, zitadel.ScopeZitadelAPI()},
+	   	zitadel.WithJWTProfileTokenSource(middleware.JWTProfileFromPath(ctx, keyPath)),
+	   	zitadel.WithDialOptions(
+	   		grpc.WithTransportCredentials(creds),
+	   	),
+
+	   )
+	*/
 }
 
 func listProjects(ctx context.Context, client *management.Client) ([]*project.Project, error) {
@@ -470,7 +476,7 @@ func ensureMinioClientApp(ctx context.Context, client *management.Client, projec
 		RedirectUris: []string{
 			// TODO: don't hardcode
 			"http://127.0.0.1:9001/oauth_callback",
-			"http://minio.127-0-0-1.sslip.io/oauth_callback",
+			fmt.Sprintf("http://minio.%s/oauth_callback", os.Getenv("EDGE_DOMAIN_ROOT")),
 		},
 		ResponseTypes: []app.OIDCResponseType{app.OIDCResponseType_OIDC_RESPONSE_TYPE_CODE},
 		GrantTypes: []app.OIDCGrantType{

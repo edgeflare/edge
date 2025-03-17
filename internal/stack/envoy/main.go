@@ -1,4 +1,4 @@
-package main
+package envoy
 
 import (
 	"context"
@@ -29,7 +29,7 @@ func init() {
 	flag.StringVar(&nodeID, "nodeID", "localhost", "Node ID")
 }
 
-func main() {
+func RunControlplaneServer() {
 	flag.Parse()
 
 	// Create a cache

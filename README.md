@@ -29,50 +29,56 @@ git clone git@github.com:edgeflare/edge.git && cd edge
 
 ### [docker-compose.yaml](./docker-compose.yaml)
 
-Adjust the docker-compose.yaml
+- determine a root domain (hostname) eg `example.org`. if such a globally routable domain isn't available,
+use something like https://sslip.io, which returns embedded IP address in domain name. that's what this demo setup does
 
-- Free up port 80 from envoy for zitadel's initial configuration via its management API which requires end-to-end HTTP/2 support.
-We still need to get envoy (in docker) to proxy HTTP/2 traffic. On k8s everything works fine.
+> when containers dependent on zitadel (it being the centralized IdP) fail, try restarting it once zitadel is healthy
 
-```yaml
-  envoy:
-    ports:
-    - 9901:9901
-    # - 80:10080 # or use eg 10080:10080
+```sh
+EDGE_DOMAIN_ROOT=192-168-0-10.sslip.io              # resolves to 192.168.0.121 (gateway/envoy IP). use LAN or accesible IP/hostname
+ZITADEL_EXTERNALDOMAIN=iam.192-168-0-10.sslip.io
+MINIO_BROWSER_REDIRECT_URL=http://minio.192-168-0-10.sslip.io
 ```
 
-- Expose ZITADEL on port 80, by uncommenting
+similarly adjust `internal/stack/envoy/config.yaml` and `internal/stack/pgo/config.yaml`
 
-```yaml
-    ports:
-    - 80:8080
+- ensure zitadel container can write admin service account key which edge uses to configure zitadel
+
+```sh
+mkdir -p __zitadel
+chmod -R a+rw __zitadel
 ```
+
+- ensure ./tls.key ./tls.crt exists. Use something like
+
+```sh
+openssl req -x509 -newkey rsa:4096 -keyout tls.key -out tls.crt -days 365 -nodes \
+  -subj "/CN=iam.example.local" \
+  -addext "subjectAltName=DNS:*.example.local,DNS:*.192-168-0-10.sslip.io"
+
+# for envoy container to access keypair
+chmod 666 tls.crt
+chmod 666 tls.key
+```
+
+This is to configure envoy for end-to-end HTTP/2 required by zitadel management API. zitadel API bugs with self-signed certificates.
+For publicly trusted certificates, enable TLS by updating env vars in ZITADEL.
 
 ```sh
 docker compose up -d
 ```
 
-#### Use the centralized IdP for authorization in Postgres via `pgo rest` (PostgREST API)
+Check zitadel health with `curl http://iam.192-168-0-10.sslip.io/debug/healthz` or `docker exec -it edge_edge_1 /edge healthz`
 
-Configure ZITADEL. Adjust the domain in env vars, and in `internal/stack/envoy/config.yaml`
+#### Use the centralized IdP for authorization in Postgres via `pgo rest` (PostgREST API) as well as minio-s3, NATS etc
 
-```sh
-export ZITADEL_HOSTNAME=iam.192-168-0-121.sslip.io
-export ZITADEL_ISSUER=http://$ZITADEL_HOSTNAME
-export ZITADEL_API=$ZITADEL_HOSTNAME:80
-export ZITADEL_KEY_PATH=__zitadel-machinekey/zitadel-admin-sa.json
-export ZITADEL_JWK_URL=http://$ZITADEL_HOSTNAME/oauth/v2/keys
-```
+edge so far creates the clients. a bit works needed to for configuring consumers of client secrets.
+For now, isit ZITADEL UI (eg at http://iam.192-168-0-10.sslip.io), login (see docker-compose.yaml) and regenerate client-secrets for oauth2-proxy and minio clients in edge project. Then
 
-```sh
-go run ./internal/stack/configure/...
-```
+- update `internal/stack/pgo/config.yaml` with the values
+- update relevant env vars in minio container
 
-The above go code creates, among others, an OIDC client which pgo uses for authN/authZ. Any OIDC compliant Identity Provider (eg , Keycloak, Auth0) can be used; pgo just needs the client credentials.
-
-Once ZITADEL is configured, revert the ports (use 80 for envoy), and `docker compose down && docker compose up -d`
-
-Visit ZITADEL UI (eg at http://iam.192-168-0-121.sslip.io), login (see docker-compose.yaml) and regenerate client-secret for oauth2-proxy client in edge project. Then update `internal/stack/pgo/config.yaml` with the values. Again, `docker compose down && docker compose up -d`
+And `docker compose down && docker compose up -d`
 
 #### `pgo rest`: PostgREST-compatible REST API
 
@@ -98,12 +104,15 @@ GRANT ALL ON iam.users to anon;
 Now we can GET, POST, PATCH, DELETE on the users table in iam schema like:
 
 ```sh
-curl http://api.127-0-0-1.sslip.io/iam/users
+curl http://api.192-168-0-10.sslip.io/iam/users
 ```
 
 ##### `pgo pipeline`: Debezium-compatible CDC for realtime-event/replication etc
 
 The demo pgo-pipeline container syncs users from auth-db (in projections.users14 table) to app-db (in iam.users)
+
+#### minio-s3
+ensure minio MINIO_IDENTITY_OPENID_CLIENT_ID and MINIO_IDENTITY_OPENID_CLIENT_SECRET are set withc appropriate values. console ui is at http://minio.192-168-0-10.sslip.io.
 
 ### Kubernetes
 If you already have a live k8s cluster, great just copy-paste-enter.

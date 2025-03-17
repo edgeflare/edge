@@ -40,5 +40,5 @@ static_resources:
               socket_address:
                 # controlplane hostname/ip:port
                 # address: 0.0.0.0              # for debugging/developing locally
-                address: envoy-controlplane     # container env
+                address: edge                   # container env
                 port_value: 18000
