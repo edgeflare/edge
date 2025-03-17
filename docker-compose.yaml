@@ -1,8 +1,8 @@
 version: '3.8'
 
 services:
-  auth-db:
-    image: docker.io/bitnami/postgresql:17
+  db-auth:
+    image: docker.io/bitnami/postgresql:17.3.0
     environment:
       POSTGRES_HOST_AUTH_METHOD: md5
       POSTGRES_USER: postgres
@@ -12,7 +12,7 @@ services:
     ports:
     - 5431:5432
     volumes:
-    - auth-db:/bitnami/postgresql
+    - db-auth:/bitnami/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -25,7 +25,7 @@ services:
     image: ghcr.io/zitadel/zitadel:latest
     command: 'start-from-init --masterkey "MasterkeyNeedsToHave32Characters" --tlsMode disabled'
     environment:
-      ZITADEL_DATABASE_POSTGRES_HOST: auth-db
+      ZITADEL_DATABASE_POSTGRES_HOST: db-auth
       ZITADEL_DATABASE_POSTGRES_PORT: 5432
       ZITADEL_DATABASE_POSTGRES_DATABASE: main
       ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
@@ -34,7 +34,7 @@ services:
       ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: postgres
       ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: postgrespw
       ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
-      ZITADEL_EXTERNALDOMAIN: iam.192-168-0-121.sslip.io   # resolves to 192.168.0.121 (gateway/envoy IP). use LAN or accesible IP/hostname
+      ZITADEL_EXTERNALDOMAIN: iam.${EDGE_DOMAIN_ROOT}
       ZITADEL_EXTERNALPORT: 80
       ZITADEL_PORT: 8080
       ZITADEL_EXTERNALSECURE: false
@@ -43,20 +43,43 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS: admin@iam.example.local
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: false
       # machine user (service-account)
-      ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH: /machinekey/zitadel-admin-sa.json
-      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: zitadel-admin-sa
+      ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH: /machinekey/admin-sa.json
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: admin-sa
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Admin
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_TYPE: 1
     depends_on:
-      auth-db:
+      db-auth:
         condition: service_healthy
-    # ports:
-    # - 80:8080
+    ports:
+    - 8080:8080
     volumes:
-    - $PWD/__zitadel-machinekey:/machinekey:rw,Z
+    - $PWD/__zitadel:/machinekey:rw,Z
 
-  app-db:
-    image: docker.io/bitnami/postgresql:17
+  edge:
+    user: "${UID:-1000}"
+    build:
+      context: "."
+      dockerfile: "./internal/stack/Containerfile"
+    entrypoint: sh -c "id && ls -la /workspace/zitadel/admin-sa.json && while [ ! -f /workspace/zitadel/admin-sa.json ]; do sleep 1; done; sleep 2; /edge serve"
+    ports:
+    # - 18000:18000 # xds-server
+    - 8081:8081   # http-admin
+    environment:
+      EDGE_DOMAIN_ROOT: ${EDGE_DOMAIN_ROOT}
+      EDGE_IAM_ZITADEL_MACHINEKEYPATH: "/workspace/zitadel/admin-sa.json"
+    healthcheck:
+      test: [CMD, /edge, healthz]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
+    volumes:
+    - $PWD/__zitadel:/workspace/zitadel:rw,Z,U
+    restart: on-failure
+
+  db-app:
+    image: docker.io/bitnami/postgresql:17.3.0
     environment:
       POSTGRES_HOST_AUTH_METHOD: md5
       POSTGRES_USER: postgres
@@ -66,49 +89,42 @@ services:
     ports:
     - 5432:5432
     volumes:
-    - app-db:/bitnami/postgresql
+    - db-app:/bitnami/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  envoy-controlplane:
-    build:
-      context: "."
-      dockerfile: "./internal/stack/envoy/Containerfile"
-    entrypoint: /envoy-controlplane
-    ports:
-    - 18000:18000 # xds-server
-    environment:
-    - "DEBUG=true"
-
   envoy:
+    user: "${UID:-1000}"
     image: docker.io/envoyproxy/envoy:contrib-v1.33-latest
-    # command: [envoy, --config-path, /etc/bootstrap.yaml, --base-id, 1]   # when used with envoy-controlplane for dynamic config
-    command: [envoy, --config-path, /etc/config.yaml, --base-id, 1]
+    # command: [envoy, --config-path, /etc/envoy/bootstrap.yaml, --base-id, "1"]   # when used with envoy-controlplane for dynamic config
+    command: [envoy, --config-path, /etc/envoy/config.yaml, --base-id, "1", --disable-hot-restart]
     privileged: true
     ports:
-    - 9901:9901      # admin
+    # - 9901:9901      # admin
     - 80:10080       # http-proxy
+    - 443:10443      # https-proxy
     volumes:
-    # - $PWD/internal/stack/envoy/bootstrap.yaml:/etc/bootstrap.yaml:rw,Z   # when used with envoy-controlplane
-    - $PWD/internal/stack/envoy/config.yaml:/etc/config.yaml:rw,Z           # hard-coded config
-    depends_on:
-    - envoy-controlplane
+    # - $PWD/internal/stack/envoy/bootstrap.yaml:/etc/envoy/bootstrap.yaml:rw,Z   # when used with envoy-controlplane
+    - $PWD/internal/stack/envoy/config.yaml:/etc/envoy/config.yaml:rw,Z           # hard-coded config
+    - $PWD/tls.crt:/etc/envoy/tls.crt:rw,Z
+    - $PWD/tls.key:/etc/envoy/tls.key:rw,Z
 
   pgo-rest:
     image: ghcr.io/edgeflare/pgo
     command: [rest, --config, /rest/config.yaml]
     ports:
-    - 8080:8080
+    - 8082:8080
     volumes:
     - $PWD/internal/stack/pgo/config.yaml:/rest/config.yaml:rw,Z
     depends_on:
-      app-db:
+      db-app:
         condition: service_healthy
-      # init-app-db:
-      #   condition: service_completed_successfully # errors
+      edge:
+        condition: service_healthy
+    restart: on-failure
 
   pgo-pipeline:
     image: ghcr.io/edgeflare/pgo
@@ -116,62 +132,64 @@ services:
     volumes:
     - $PWD/internal/stack/pgo/config.yaml:/pipeline/config.yaml:rw,Z
     depends_on:
-      auth-db:
+      db-auth:
         condition: service_healthy
-      app-db:
+      db-app:
         condition: service_healthy
 
-  minio:
+  s3-minio:
     image: quay.io/minio/minio
     command: [server, --console-address, ":9001"]
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minio-secret-key-change-me
       MINIO_VOLUMES: /mnt/data
-      MINIO_BROWSER_REDIRECT_URL: http://minio.127-0-0-1.sslip.io
+      MINIO_BROWSER_REDIRECT_URL: http://minio.${EDGE_DOMAIN_ROOT}
       # OIDC
-      MINIO_IDENTITY_OPENID_CLIENT_ID: "311219429557993516"
-      MINIO_IDENTITY_OPENID_CLIENT_SECRET: "PdcOM6b3h2pcdAVc3es83PY62EVLATiMjQrela1IYChAhTbkr1RX5MNqCvMMLauw"
+      MINIO_IDENTITY_OPENID_CLIENT_ID: ${EDGE_S3_MINIO_IDENTITY_OPENID_CLIENT_ID}         # manually obtain
+      MINIO_IDENTITY_OPENID_CLIENT_SECRET: ${EDGE_S3_MINIO_IDENTITY_OPENID_CLIENT_SECRET} # from zitadel UI
       MINIO_IDENTITY_OPENID_DISPLAY_NAME: "Login with SSO"
-      MINIO_IDENTITY_OPENID_CONFIG_URL: http://iam.192-168-0-121.sslip.io/.well-known/openid-configuration
+      MINIO_IDENTITY_OPENID_CONFIG_URL: http://iam.${EDGE_DOMAIN_ROOT}/.well-known/openid-configuration
       MINIO_IDENTITY_OPENID_CLAIM_NAME: policy_minio
       MINIO_IDENTITY_OPENID_REDIRECT_URI_DYNAMIC: on
       MINIO_IDENTITY_OPENID_CLAIM_USERINFO: on
       MINIO_IDENTITY_OPENID_COMMENT: "OIDC Identity Provider"
       # notify postgres
       MINIO_NOTIFY_POSTGRES_ENABLE: on
-      MINIO_NOTIFY_POSTGRES_CONNECTION_STRING: "host=app-db port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer" 
+      MINIO_NOTIFY_POSTGRES_CONNECTION_STRING: "host=db-app port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer" 
       MINIO_NOTIFY_POSTGRES_FORMAT: namespace
       MINIO_NOTIFY_POSTGRES_ID: minioevents
       MINIO_NOTIFY_POSTGRES_TABLE: minioevents
     volumes:
-    - minio:/mnt/data
+    - s3-minio:/mnt/data
     ports:
     - 9000:9000
     - 9001:9001
     depends_on:
-      app-db:
+      db-app:
         condition: service_healthy
-      iam-zitadel:
+      # iam-zitadel:
+      #   condition: service_healthy
+      edge:
         condition: service_healthy
       # should also wait for initdb, zitadel client creation
 
-  init-app-db:
-    image: docker.io/bitnami/postgresql:17
+  init-db-app:
+    image: docker.io/bitnami/postgresql:17.3.0
     environment:
-      PGHOST: app-db
+      PGHOST: db-app
       PGUSER: postgres
       PGPASSWORD: postgrespw
       PGDATABASE: main
     depends_on:
-      app-db:
+      db-app:
         condition: service_healthy
     entrypoint:
     - /bin/bash
     - -c
     - |
       echo "Waiting for PostgreSQL to be ready..."
-      until PGPASSWORD=postgrespw psql -h app-db -U postgres -c '\q'; do
+      until PGPASSWORD=postgrespw psql -h db-app -U postgres -c '\q'; do
         echo "PostgreSQL is unavailable - sleeping"
         sleep 2
       done
@@ -222,6 +240,6 @@ services:
     restart: on-failure
 
 volumes:
-  app-db:
-  auth-db:
-  minio:
+  db-app:
+  db-auth:
+  s3-minio:

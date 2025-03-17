@@ -1,37 +1,37 @@
 rest:
   listenAddr: ":8080"
   pg:
-    connString: "host=app-db port=5432 user=pgo password=pgopw dbname=main sslmode=prefer" # container
+    connString: "host=db-app port=5432 user=pgo password=pgopw dbname=main sslmode=prefer" # container
     # connString: "host=localhost port=5432 user=pgo password=pgopw dbname=main sslmode=prefer"
   oidc:
-    issuer: http://iam.192-168-0-121.sslip.io
-    clientID: 311065325191888901
-    clientSecret: WCHwhcHqOFj1igPCh8MvTdidnKMUcUiJV40fnuekKNmY3tdyS6CtIWfRrBjbG24w
+    issuer: http://iam.EDGE_DOMAIN_ROOT
+    clientID: PGO_REST_OIDC_CLIENT_ID
+    clientSecret: PGO_REST_OIDC_CLIENT_SECRET
     roleClaimKey: .policy.pgrole
   basicAuth: {}
   anonRole: anon
 
 pipeline:
   peers:
-  - name: auth-db
+  - name: db-auth
     connector: postgres
     config:
-      connString: "host=auth-db port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer replication=database"
+      connString: "host=db-auth port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer replication=database"
       replication:
         tables: ["projections.users14"]
-  - name: app-db
+  - name: db-app
     connector: postgres
     config:
-      connString: "host=app-db port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer"
+      connString: "host=db-app port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer"
   - name: debug # logs CDC events to stdout
     connector: debug
   pipelines:
-  - name: sync-users-from-auth-db-to-app-db
+  - name: sync-users-from-db-auth-to-db-app
     sources:
-    - name: auth-db
+    - name: db-auth
     sinks:
     - name: debug
-    - name: app-db
+    - name: db-app
       transformations:
       - type: filter
         config:
