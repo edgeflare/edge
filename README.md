@@ -1,19 +1,19 @@
-# edge: pocketbase, for PostgreSQL. its components scale as containers
-
-[![CI](https://github.com/edgeflare/edge/actions/workflows/ci.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/edgeflare/edge/actions/workflows/codeql.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/codeql.yml)
-[![Release](https://github.com/edgeflare/edge/actions/workflows/release.yml/badge.svg)](https://github.com/edgeflare/edge/actions/workflows/release.yml)
+# edge: PostgreSQL backend in a binary, whose components scale as containers
 
 edge configures and manages:
 
-* [PostgreSQL](https://www.postgresql.org/): The world's most advanced open source database
-* [ZITADEL](https://github.com/zitadel/zitadel): Centralized identity provider (OIDC)
-* [MinIO](https://github.com/minio/minio) / [SeaweedFS](https://github.com/seaweedfs/seaweedfs): S3-compatible object storage
-* [NATS](https://nats.io): Message streaming platform
-* [envoy](https://github.com/envoyproxy/envoy): Cloud-native high-performance edge/middle/service proxy
-* [edgeflare/pgo](https://github.com/edgeflare/pgo): PostgREST-compatible API and Debezium-compatible CDC
+| Component         | Technology / Tool       | Description |
+|-------------------|-----------------------|-------------|
+| Platform          | Linux, Docker, [Kubernetes](https://kubernetes.io)            | Native and containerized deployments provideing ease and scalability |
+| Database          | [PostgreSQL](https://www.postgresql.org) + [pgvector](https://github.com/pgvector/pgvector)  | The world's most advanced open source database. Vector search using pgvector |
+| (IAM) AuthN/AuthZ | [ZITADEL](https://github.com/zitadel/zitadel) + [Postgres RLS](https://www.postgresql.org/docs/current/ddl-rowsecurity.html) | Comprehensive authN and authZ through ZITADEL, PostgreSQL Row-Level Security and envoy filters eg ext-authz |
+| Object Storage    | [MinIO](https://github.com/minio/minio) / [SeaweedFS](https://github.com/seaweedfs/seaweedfs)                 | Offers high-performance, Kubernetes-native object storage. |
+| REST API / Events | [edgeflare/pgo](https://github.com/edgeflare/pgo) | PostgREST-compatible REST API, Debezium-compatible CDC |
+| API Gateway       | [Istio](https://istio.io)/[Envoy](https://www.envoyproxy.io), [cert-manager](https://cert-manager.io) and optionally [Cloudflare](https://cloudflare.com)         | Manages, secures, and monitors traffic between microservices as well as from and to the Internet |
 
-for a unified backend - similar to Firebase, Supabase, Pocketbase etc. And with scaling capabilities.
+for a unified backend - similar to Firebase, Supabase etc. And with scaling capabilities. **We use [PostgREST](https://docs.postgrest.org) where reliability is important; writing similar in Go to be able to 1. embed in a go binary and 2. run in serverless env.**
+
+
 
 ## Deployment options
 
@@ -42,7 +42,6 @@ export EDGE_DOMAIN_ROOT=192-168-0-121.sslip.io              # resolves to 192.16
 
 ```sh
 sed  "s/EDGE_DOMAIN_ROOT/${EDGE_DOMAIN_ROOT}/g" internal/stack/envoy/config.template.yaml > internal/stack/envoy/config.yaml
-
 sed  "s/EDGE_DOMAIN_ROOT/${EDGE_DOMAIN_ROOT}/g" internal/stack/pgo/config.template.yaml > internal/stack/pgo/config.yaml
 ```
 
