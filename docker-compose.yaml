@@ -55,29 +55,6 @@ services:
     volumes:
     - $PWD/__zitadel:/machinekey:rw,Z
 
-  edge:
-    user: "${UID:-1000}"
-    build:
-      context: "."
-      dockerfile: "./internal/stack/Containerfile"
-    entrypoint: sh -c "id && ls -la /workspace/zitadel/admin-sa.json && while [ ! -f /workspace/zitadel/admin-sa.json ]; do sleep 1; done; sleep 2; /edge serve"
-    ports:
-    # - 18000:18000 # xds-server
-    - 8081:8081   # http-admin
-    environment:
-      EDGE_DOMAIN_ROOT: ${EDGE_DOMAIN_ROOT}
-      EDGE_IAM_ZITADEL_MACHINEKEYPATH: "/workspace/zitadel/admin-sa.json"
-    healthcheck:
-      test: [CMD, /edge, healthz]
-      interval: 5s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-      start_interval: 5s
-    volumes:
-    - $PWD/__zitadel:/workspace/zitadel:rw,Z,U
-    restart: on-failure
-
   db-app:
     image: docker.io/bitnami/postgresql:17.3.0
     environment:
@@ -155,11 +132,14 @@ services:
       MINIO_IDENTITY_OPENID_CLAIM_USERINFO: on
       MINIO_IDENTITY_OPENID_COMMENT: "OIDC Identity Provider"
       # notify postgres
-      MINIO_NOTIFY_POSTGRES_ENABLE: on
-      MINIO_NOTIFY_POSTGRES_CONNECTION_STRING: "host=db-app port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer" 
-      MINIO_NOTIFY_POSTGRES_FORMAT: namespace
-      MINIO_NOTIFY_POSTGRES_ID: minioevents
-      MINIO_NOTIFY_POSTGRES_TABLE: minioevents
+      MINIO_NOTIFY_POSTGRES_ENABLE_PRIMARY: on
+      MINIO_NOTIFY_POSTGRES_CONNECTION_STRING_PRIMARY: "host=db-app port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer"
+      MINIO_NOTIFY_POSTGRES_TABLE_PRIMARY: minioevents
+      MINIO_NOTIFY_POSTGRES_FORMAT_PRIMARY: namespace
+      MINIO_NOTIFY_POSTGRES_MAX_OPEN_CONNECTIONS_PRIMARY: 2
+      MINIO_NOTIFY_POSTGRES_QUEUE_DIR_PRIMARY: /opt/minio/events
+      MINIO_NOTIFY_POSTGRES_QUEUE_LIMIT_PRIMARY: 100000
+      MINIO_NOTIFY_POSTGRES_COMMENT_PRIMARY: "PostgreSQL Notification Event Logging for MinIO"
     volumes:
     - s3-minio:/mnt/data
     ports:
@@ -238,8 +218,57 @@ services:
         GRANT ALL PRIVILEGES ON TABLE public.minioevents TO minio;
       "
     restart: on-failure
+  emqx:  # MQTT broker. prefer NATS' MQTT
+    image: docker.io/emqx:5.8
+    environment:
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: public
+      EMQX_DASHBOARD__DEFAULT_USERNAME: admin
+    ports:
+    - 1883:1883   # MQTT
+    - 8883:8883   # MQTTS
+    - 8083:8083   # WS
+    - 8084:8084   # WSS
+    - 18083:18083 # http-dashboard
+    volumes:
+    - emqx:/opt/emqx/data
+    healthcheck:
+      test: ["CMD", "emqx_ctl", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  edge:
+    user: "${UID:-1000}"
+    build:
+      context: "."
+      dockerfile: "./internal/stack/Containerfile"
+    entrypoint: sh -c "id && ls -la /workspace/zitadel/admin-sa.json && while [ ! -f /workspace/zitadel/admin-sa.json ]; do sleep 1; done; sleep 2; /edge serve  --configure-addons=emqx"
+    # extra comma-separated add-ons eg emqx,nats, ...
+    ports:
+    # - 18000:18000 # xds-server
+    - 8081:8081   # http-admin
+    environment:
+      EDGE_DOMAIN_ROOT: ${EDGE_DOMAIN_ROOT}
+      EDGE_IAM_ZITADEL_MACHINEKEYPATH: "/workspace/zitadel/admin-sa.json"
+    healthcheck:
+      test: [CMD, /edge, healthz]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
+    volumes:
+    - $PWD/__zitadel:/workspace/zitadel:rw,Z,U
+    restart: on-failure
 
 volumes:
   db-app:
   db-auth:
   s3-minio:
+  emqx:
+
+# MINIO_NOTIFY_POSTGRES_ENABLE: on
+# MINIO_NOTIFY_POSTGRES_CONNECTION_STRING: "host=db-app port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer" 
+# MINIO_NOTIFY_POSTGRES_FORMAT: namespace
+# MINIO_NOTIFY_POSTGRES_ID: minioevents
+# MINIO_NOTIFY_POSTGRES_TABLE: minioevents

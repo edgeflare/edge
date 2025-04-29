@@ -2,14 +2,13 @@ package emqx
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 
-	"github.com/edgeflare/pgo/pkg/util"
 	"github.com/edgeflare/pgo/pkg/util/rand"
 )
 
@@ -21,12 +20,13 @@ type EMQXClient struct {
 }
 
 var (
-	url               = util.GetEnvOrDefault("EDGE_EMQX_HTTP_API", "http://emqx:18083/api/v5")
-	pgPassword        = util.GetEnvOrDefault("EDGE_EMQX_PGPASSWORD", "")
-	pgUser            = util.GetEnvOrDefault("EDGE_EMQX_PGUSER", "emqx")
-	dashboardPassword = util.GetEnvOrDefault("EMQX_DASHBOARD__DEFAULT_PASSWORD", "public")
-	dashboardUsername = util.GetEnvOrDefault("EMQX_DASHBOARD__DEFAULT_USERNAME", "admin")
-	edgeMqttPassword  = util.GetEnvOrDefault("EDGE_MQTT_PASSWORD", "")
+	url               = cmp.Or(os.Getenv("EDGE_EMQX_HTTP_API"), fmt.Sprintf("http://emqx-%s:18083/api/v5", os.Getenv("EDGE_DOMAIN_ROOT")), "http://emqx:18083/api/v5")
+	pgPassword        = cmp.Or(os.Getenv("EDGE_EMQX_PGPASSWORD"), "")
+	pgUser            = cmp.Or(os.Getenv("EDGE_EMQX_PGUSER"), "emqx")
+	dashboardPassword = cmp.Or(os.Getenv("EMQX_DASHBOARD__DEFAULT_PASSWORD"), "public")
+	dashboardUsername = cmp.Or(os.Getenv("EMQX_DASHBOARD__DEFAULT_USERNAME"), "admin")
+	edgeMqttPassword  = cmp.Or(os.Getenv("EDGE_MQTT_PASSWORD"), "")
+	idPJwksEndpoint   = cmp.Or(os.Getenv("EDGE_IAM_ISSUER_JWKS_ENDPOINT"), fmt.Sprintf("http://iam.%s/oauth/v2/keys", os.Getenv("EDGE_DOMAIN_ROOT")))
 )
 
 // NewEMQXClient initializes a new EMQX client
@@ -45,26 +45,70 @@ func NewEMQXClient() *EMQXClient {
 	return client
 }
 
-// PostRequest sends a POST request to the EMQX API with authorization header
-func (c *EMQXClient) PostRequest(endpoint string, payload interface{}) (*http.Response, error) {
+// Configure sets up the EMQX
+func Configure() {
+	client := NewEMQXClient()
+
+	err := client.addBuiltInDBAuthN()
+	if err != nil {
+		log.Fatalf("Error adding built-in database auth: %v", err)
+	}
+
+	err = client.addJWTAuthN()
+	if err != nil {
+		log.Fatalf("Error adding JWT auth: %v", err)
+	}
+
+	err = client.addPostgresAuthN()
+	if err != nil {
+		log.Fatalf("Error adding PostgreSQL auth client: %v", err)
+	}
+
+	err = client.createPublicUser()
+	if err != nil {
+		log.Fatalf("Error creating public user: %v", err)
+	}
+
+	err = client.createSuperuser()
+	if err != nil {
+		log.Fatalf("Error creating superuser: %v", err)
+	}
+
+	err = client.addFileAuthZ()
+	if err != nil {
+		log.Fatalf("Error adding file authz: %v", err)
+		// log.Printf("Warning: Skipping ERROR %s\nManually add rules on the EMQX dashboard. \nUse rules \n\n%s\n\n", err, authzRules)
+	}
+
+	fmt.Println("Successfully configured EMQX authentication clients.")
+}
+
+// makeRequest sends a POST request to the EMQX API with authorization header
+func (c *EMQXClient) makeRequest(endpoint string, payload any, method ...string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/%s", c.BaseURL, endpoint)
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	// Default to POST if no method specified
+	httpMethod := "POST"
+	if len(method) > 0 {
+		httpMethod = method[0]
+	}
+
+	req, err := http.NewRequest(httpMethod, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
+
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.AdminToken))
-
 	return c.Client.Do(req)
 }
 
-// Modify AddBuiltInDBAuth to be idempotent
-func (c *EMQXClient) AddBuiltInDBAuth() error {
+// addBuiltInDBAuthN adds built-in database authentication to EMQX
+func (c *EMQXClient) addBuiltInDBAuthN() error {
 	exists, err := c.authMethodExists("password_based:built_in_database")
 	if err != nil {
 		return err
@@ -74,7 +118,7 @@ func (c *EMQXClient) AddBuiltInDBAuth() error {
 		return nil
 	}
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"user_id_type": "username",
 		"password_hash_algorithm": map[string]string{
 			"name":          "sha512",
@@ -84,7 +128,7 @@ func (c *EMQXClient) AddBuiltInDBAuth() error {
 		"mechanism": "password_based",
 	}
 
-	res, err := c.PostRequest("authentication", payload)
+	res, err := c.makeRequest("authentication", payload)
 	if err != nil {
 		return err
 	}
@@ -97,8 +141,8 @@ func (c *EMQXClient) AddBuiltInDBAuth() error {
 	return nil
 }
 
-// Modify AddJWTAuth to be idempotent
-func (c *EMQXClient) AddJWTAuth() error {
+// addJWTAuthN adds JWT authentication to EMQX
+func (c *EMQXClient) addJWTAuthN() error {
 	exists, err := c.authMethodExists("jwt")
 	if err != nil {
 		return err
@@ -108,23 +152,23 @@ func (c *EMQXClient) AddJWTAuth() error {
 		return nil
 	}
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"from":     "password",
 		"use_jwks": true,
 		"verify_claims": map[string]string{
 			"sub": "${username}",
 		},
 		"disconnect_after_expire": true,
-		"endpoint":                fmt.Sprintf("https://iam-%s.%s.edgeflare.dev/oauth/v2/keys", os.Getenv("EF_PROJECT_NS"), os.Getenv("EF_REGION")),
-		"refresh_interval":        5,
-		"ssl": map[string]interface{}{
+		"endpoint":                idPJwksEndpoint,
+		"refresh_interval":        30,
+		"ssl": map[string]any{
 			"enable": true,
 			"verify": "verify_none",
 		},
 		"mechanism": "jwt",
 	}
 
-	res, err := c.PostRequest("authentication", payload)
+	res, err := c.makeRequest("authentication", payload)
 	if err != nil {
 		return err
 	}
@@ -137,8 +181,8 @@ func (c *EMQXClient) AddJWTAuth() error {
 	return nil
 }
 
-// Modify AddPostgresAuth to be idempotent
-func (c *EMQXClient) AddPostgresAuth() error {
+// addPostgresAuthN adds PostgreSQL authentication to EMQX
+func (c *EMQXClient) addPostgresAuthN() error {
 	exists, err := c.authMethodExists("password_based:postgresql")
 	if err != nil {
 		return err
@@ -148,7 +192,7 @@ func (c *EMQXClient) AddPostgresAuth() error {
 		return nil
 	}
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"backend":                     "postgresql",
 		"database":                    "main",
 		"disable_prepared_statements": false,
@@ -162,7 +206,7 @@ func (c *EMQXClient) AddPostgresAuth() error {
 		"pool_size": 8,
 		"query":     "SELECT password_hash, salt, is_superuser FROM edge.mqtt_users WHERE username = ${username} LIMIT 1",
 		"server":    "postgres-replica:5432",
-		"ssl": map[string]interface{}{
+		"ssl": map[string]any{
 			"ciphers":                []string{},
 			"depth":                  10,
 			"enable":                 true,
@@ -177,7 +221,7 @@ func (c *EMQXClient) AddPostgresAuth() error {
 		"username": pgUser,
 	}
 
-	res, err := c.PostRequest("authentication", payload)
+	res, err := c.makeRequest("authentication", payload)
 	if err != nil {
 		return err
 	}
@@ -188,38 +232,6 @@ func (c *EMQXClient) AddPostgresAuth() error {
 	}
 
 	return nil
-}
-
-// Configure sets up the EMQX
-func Configure() {
-	client := NewEMQXClient()
-
-	err := client.AddBuiltInDBAuth()
-	if err != nil {
-		log.Fatalf("Error adding built-in database auth: %v", err)
-	}
-
-	err = client.AddJWTAuth()
-	if err != nil {
-		log.Fatalf("Error adding JWT auth: %v", err)
-	}
-
-	err = client.AddPostgresAuth()
-	if err != nil {
-		log.Fatalf("Error adding PostgreSQL auth client: %v", err)
-	}
-
-	err = client.CreatePublicUser()
-	if err != nil {
-		log.Fatalf("Error creating public user: %v", err)
-	}
-
-	err = client.CreateSuperuser()
-	if err != nil {
-		log.Fatalf("Error creating superuser: %v", err)
-	}
-
-	fmt.Println("Successfully configured EMQX authentication clients.")
 }
 
 // obtainAdminToken gets the admin token and stores it in the client
@@ -265,7 +277,7 @@ func (c *EMQXClient) obtainAdminToken(username, password string) error {
 // It first checks if the password-based authentication method exists.
 // If not, creating a user will likely fail.
 // Then, it checks if the specified user ID already exists.
-func (c *EMQXClient) createUser(user map[string]interface{}) error {
+func (c *EMQXClient) createUser(user map[string]any) error {
 	// Check if the password-based authentication method exists
 	exists, err := c.authMethodExists("password_based:built_in_database")
 	if err != nil {
@@ -294,7 +306,7 @@ func (c *EMQXClient) createUser(user map[string]interface{}) error {
 	}
 
 	// Proceed with user creation if the user doesn't exist
-	res, err := c.PostRequest("authentication/password_based%3Abuilt_in_database/users", user)
+	res, err := c.makeRequest("authentication/password_based%3Abuilt_in_database/users", user)
 	if err != nil {
 		return err
 	}
@@ -307,16 +319,11 @@ func (c *EMQXClient) createUser(user map[string]interface{}) error {
 }
 
 func (c *EMQXClient) userExists(userID string) (bool, error) {
-	// Construct the URL for the GET request
 	url := c.BaseURL + "/authentication/password_based%3Abuilt_in_database/users"
-
-	// Create the HTTP request
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return false, err
 	}
-
-	// Add authorization header
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.AdminToken))
 
 	// Send the request
@@ -326,12 +333,10 @@ func (c *EMQXClient) userExists(userID string) (bool, error) {
 	}
 	defer func() { _ = res.Body.Close() }()
 
-	// Check the response status
 	if res.StatusCode != http.StatusOK {
 		return false, fmt.Errorf("failed to check user existence: %s", res.Status)
 	}
 
-	// Decode the response body
 	type UserResponse struct {
 		Data []struct {
 			UserID string `json:"user_id"`
@@ -370,19 +375,16 @@ func (c *EMQXClient) authMethodExists(methodId string) (bool, error) {
 		return false, fmt.Errorf("failed to check authentication: %s", res.Status)
 	}
 
-	// Inline struct definition
 	type authMethod struct {
 		ID string `json:"id"`
 	}
 
-	// Decode response directly into a slice of the inline struct
 	var authMethods []authMethod
 	err = json.NewDecoder(res.Body).Decode(&authMethods)
 	if err != nil {
 		return false, err
 	}
 
-	// Search for method ID within the slice
 	for _, method := range authMethods {
 		if method.ID == methodId {
 			return true, nil
@@ -391,12 +393,39 @@ func (c *EMQXClient) authMethodExists(methodId string) (bool, error) {
 	return false, nil
 }
 
-func (c *EMQXClient) CreateSuperuser() error {
+var authzRules = `{allow, {username, {re, "^dashboard\$"}}, subscribe, ["$SYS/#"]}.
+{deny, all, subscribe, ["$SYS/#", {eq, "#"}]}.
+{allow, all, subscribe, ["/public/#"]}.
+{allow, all, subscribe, ["/authn/${username}/#"]}.
+{allow, {username, "edge"}, all, ["/#"]}.
+{deny, all}.`
+
+func (c *EMQXClient) addFileAuthZ() error {
+	policy := map[string]any{
+		"enable": true,
+		"rules":  authzRules,
+		"type":   "file",
+	}
+
+	res, err := c.makeRequest("authorization/sources/file", policy, "PUT")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = res.Body.Close() }()
+
+	if res.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to add file authz: %s", res.Status)
+	}
+
+	return nil
+}
+
+func (c *EMQXClient) createSuperuser() error {
 	if edgeMqttPassword == "" {
 		edgeMqttPassword = rand.NewPassword()
 	}
 
-	superuser := map[string]interface{}{
+	superuser := map[string]any{
 		"user_id":      "edge",
 		"password":     edgeMqttPassword,
 		"is_superuser": true,
@@ -420,26 +449,29 @@ func (c *EMQXClient) CreateSuperuser() error {
 	}
 
 	// Create kubernetes secret using kubectl
-	cmd := exec.Command("kubectl", "-n", os.Getenv("EF_PROJECT_NS"), "create", "secret", "generic",
-		"emqx-mqttuser-edge",
-		fmt.Sprintf("--from-literal=password=%s", edgeMqttPassword))
+	//
+	// TODO: should use k8s client-go instead of exec, and when running on Kubernetes
+	//
+	// cmd := exec.Command("kubectl", "-n", os.Getenv("EF_PROJECT_NS"), "create", "secret", "generic",
+	// 	"emqx-mqttuser-edge",
+	// 	fmt.Sprintf("--from-literal=password=%s", edgeMqttPassword))
 
-	// Capture both stdout and stderr
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
+	// // Capture both stdout and stderr
+	// var out bytes.Buffer
+	// var stderr bytes.Buffer
+	// cmd.Stdout = &out
+	// cmd.Stderr = &stderr
 
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed to create kubernetes secret: %v\nstdout: %s\nstderr: %s", err, out.String(), stderr.String())
-	}
+	// err = cmd.Run()
+	// if err != nil {
+	// 	return fmt.Errorf("failed to create kubernetes secret: %v\nstdout: %s\nstderr: %s", err, out.String(), stderr.String())
+	// }
 
 	return nil
 }
 
-func (c *EMQXClient) CreatePublicUser() error {
-	user := map[string]interface{}{
+func (c *EMQXClient) createPublicUser() error {
+	user := map[string]any{
 		"user_id":      "public",
 		"password":     "public",
 		"is_superuser": false,

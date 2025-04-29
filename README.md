@@ -4,16 +4,17 @@ edge configures and manages:
 
 | Component         | Technology / Tool       | Description |
 |-------------------|-----------------------|-------------|
-| Platform          | Linux, Docker, [Kubernetes](https://kubernetes.io)            | Native and containerized deployments provideing ease and scalability |
 | Database          | [PostgreSQL](https://www.postgresql.org) + [pgvector](https://github.com/pgvector/pgvector)  | The world's most advanced open source database. Vector search using pgvector |
-| (IAM) AuthN/AuthZ | [ZITADEL](https://github.com/zitadel/zitadel) + [Postgres RLS](https://www.postgresql.org/docs/current/ddl-rowsecurity.html) | Comprehensive authN and authZ through ZITADEL, PostgreSQL Row-Level Security and envoy filters eg ext-authz |
-| Object Storage    | [MinIO](https://github.com/minio/minio) / [SeaweedFS](https://github.com/seaweedfs/seaweedfs)                 | Offers high-performance, Kubernetes-native object storage. |
+| (IAM) AuthN/AuthZ | Any OIDC compliant IdP eg [Keycloak](https://www.keycloak.org), Auth0, [ZITADEL](https://github.com/zitadel/zitadel) (default) + [Postgres RLS](https://www.postgresql.org/docs/current/ddl-rowsecurity.html) | Comprehensive authN and authZ through OIDC claims, PostgreSQL Row-Level Security and envoy filters eg ext-authz |
+| Object Storage    | Any S3 compliant storage eg AWS S3, Cloudflare R2, [MinIO](https://github.com/minio/minio), Ceph RGW, [SeaweedFS](https://github.com/seaweedfs/seaweedfs) (default)                 | Offers high-performance, Kubernetes-native object storage. |
 | REST API / Events | [edgeflare/pgo](https://github.com/edgeflare/pgo) | PostgREST-compatible REST API, Debezium-compatible CDC |
 | API Gateway       | [Istio](https://istio.io)/[Envoy](https://www.envoyproxy.io), [cert-manager](https://cert-manager.io) and optionally [Cloudflare](https://cloudflare.com)         | Manages, secures, and monitors traffic between microservices as well as from and to the Internet |
 
-for a unified backend - similar to Firebase, Supabase etc. And with scaling capabilities. **We use [PostgREST](https://docs.postgrest.org) where reliability is important; writing similar in Go to be able to 1. embed in a go binary and 2. run in serverless env.**
+to build a unified backend - similar to Firebase, Supabase etc. And with scaling capabilities. The stack runs on Linux, Docker and [Kubernetes](https://kubernetes.io) allowing it to start on a RaspberryPi-like device and scale to a multi-region Kubernetes cluster.
 
+edge allows (is purposefully designed) to mix-match existing, external (incl proprietary) components from anywhere - eg GCP Cloud SQL, Auth0 IdP, AWS S3, etc. it simply ensures all these are configred to function as a single unit.
 
+> **We use [PostgREST](https://docs.postgrest.org) where reliability is important; writing [edgeflare/pgo](https://github.com/edgeflare/pgo) in Go to be able to 1. embed in a go binary and 2. run in serverless env.**
 
 ## Deployment options
 
@@ -32,7 +33,7 @@ git clone git@github.com:edgeflare/edge.git && cd edge
 1. determine a root domain (hostname) eg `example.org`. if such a globally routable domain isn't available,
 utilize https://sslip.io resolver, which returns embedded IP address in domain name. that's what this demo setup does
 
-> when containers dependent on zitadel (it being the centralized IdP) fail, try restarting it once zitadel is healthy
+> when containers dependent on zitadel (it being the centralized IdP) fail, try restarting them once zitadel is healthy
 
 ```sh
 export EDGE_DOMAIN_ROOT=192-168-0-121.sslip.io              # resolves to 192.168.0.121 (gateway/envoy IP). use LAN or accesible IP/hostname
@@ -69,6 +70,7 @@ For publicly trusted certificates, enable TLS by updating env vars in ZITADEL.
 
 5. start containers
 ```sh
+# docker compose build
 docker compose up -d
 ```
 

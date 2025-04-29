@@ -44,6 +44,15 @@ static_resources:
               - match: { prefix: "/" }
                 route:
                   cluster: minio_s3_service
+            - name: emqx_mqtt
+              domains: ["emqx.EDGE_DOMAIN_ROOT", "mqtt.EDGE_DOMAIN_ROOT"]
+              routes:
+              - match: { prefix: "/mqtt" }
+                route:
+                  cluster: emqx_websocket_service
+              - match: { prefix: "/" }
+                route:
+                  cluster: emqx_dashboard_service
             ignore_port_in_host_matching: true
           upgrade_configs:
           - upgrade_type: websocket
@@ -167,6 +176,45 @@ static_resources:
               socket_address:
                 address: s3-minio
                 port_value: 9000
+
+  - name: emqx_dashboard_service
+    connect_timeout: 0.25s
+    type: LOGICAL_DNS
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http_protocol_options: {}
+    lb_policy: round_robin
+    load_assignment:
+      cluster_name: emqx_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: emqx
+                port_value: 18083
+
+  - name: emqx_websocket_service
+    connect_timeout: 0.25s
+    type: LOGICAL_DNS
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http_protocol_options: {}
+    lb_policy: round_robin
+    load_assignment:
+      cluster_name: emqx_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: emqx
+                port_value: 8083
+
 admin:
   address:
     socket_address:
