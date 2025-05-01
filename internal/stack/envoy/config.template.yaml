@@ -139,7 +139,7 @@ static_resources:
             address:
               socket_address:
                 address: pgo-rest
-                port_value: 8080
+                port_value: 8001
   - name: minio_console_service
     connect_timeout: 0.25s
     type: LOGICAL_DNS
@@ -193,7 +193,7 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: emqx
+                address: mqtt-emqx
                 port_value: 18083
 
   - name: emqx_websocket_service
@@ -212,7 +212,7 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: emqx
+                address: mqtt-emqx
                 port_value: 8083
 
 admin:

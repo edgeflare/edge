@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -201,7 +202,7 @@ func registerZitadelCheck(hc *HealthChecker, host string) {
 }
 
 // serve starts the health check API server
-func serve(port int, zitadelHost string) {
+func serve(ctx context.Context, port int, zitadelHost string) error {
 	healthChecker := NewHealthChecker(30 * time.Second)
 	registerZitadelCheck(healthChecker, zitadelHost)
 	healthChecker.StartChecking()
@@ -211,7 +212,6 @@ func serve(port int, zitadelHost string) {
 	// Overall health endpoint
 	mux.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		health := healthChecker.GetSystemHealth()
-
 		if health.Status != StatusHealthy {
 			httputil.JSON(w, http.StatusServiceUnavailable, nil)
 		}
@@ -225,27 +225,39 @@ func serve(port int, zitadelHost string) {
 			http.NotFound(w, r)
 			return
 		}
-
 		health, exists := healthChecker.GetServiceHealth(serviceName)
 		if !exists {
 			http.NotFound(w, r)
 			return
 		}
-
 		if health.Status != StatusHealthy {
 			httputil.JSON(w, http.StatusServiceUnavailable, nil)
 		}
 		httputil.JSON(w, http.StatusOK, health)
 	})
 
-	// Start the HTTP server
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
 
-	log.Printf("Starting health check service on :%d\n", port)
-	log.Fatal(server.ListenAndServe())
+	// Start server in goroutine
+	go func() {
+		log.Printf("Starting health check service on :%d\n", port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("HTTP server error: %v", err)
+		}
+	}()
+
+	// Wait for context cancellation then shutdown
+	<-ctx.Done()
+	log.Println("Shutting down health check service...")
+
+	// Give shutdown a deadline
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	return server.Shutdown(shutdownCtx)
 }
 
 // checkHealth checks the health endpoint and returns proper exit code

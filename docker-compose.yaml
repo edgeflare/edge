@@ -1,18 +1,16 @@
-version: '3.8'
-
 services:
-  db-auth:
-    image: docker.io/bitnami/postgresql:17.3.0
+  db-postgresql:
+    image: docker.io/bitnami/postgresql:17.4.0
     environment:
-      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgrespw
       POSTGRES_DB: main
       POSTGRESQL_WAL_LEVEL: logical
     ports:
-    - 5431:5432
+    - 5432:5432
     volumes:
-    - db-auth:/bitnami/postgresql
+    - db-postgresql:/bitnami/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -23,21 +21,21 @@ services:
     user: "${UID:-1000}"
     restart: always
     image: ghcr.io/zitadel/zitadel:latest
-    command: 'start-from-init --masterkey "MasterkeyNeedsToHave32Characters" --tlsMode disabled'
+    command: 'start-from-init --masterkey "MasterkeyNeedsToHave32Characters" --tlsMode external' #  --tlsMode disabled
     environment:
-      ZITADEL_DATABASE_POSTGRES_HOST: db-auth
+      ZITADEL_DATABASE_POSTGRES_HOST: db-postgresql
       ZITADEL_DATABASE_POSTGRES_PORT: 5432
-      ZITADEL_DATABASE_POSTGRES_DATABASE: main
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
       ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
       ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: zitadelpw
       ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
       ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: postgres
       ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: postgrespw
       ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
-      ZITADEL_EXTERNALDOMAIN: iam.${EDGE_DOMAIN_ROOT}
-      ZITADEL_EXTERNALPORT: 80
       ZITADEL_PORT: 8080
-      ZITADEL_EXTERNALSECURE: false
+      ZITADEL_EXTERNALDOMAIN: iam.${EDGE_DOMAIN_ROOT}
+      ZITADEL_EXTERNALPORT: 443
+      ZITADEL_EXTERNALSECURE: true
       # human user
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: Password1!
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS: admin@iam.example.local
@@ -48,70 +46,129 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Admin
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_TYPE: 1
     depends_on:
-      db-auth:
+      db-postgresql:
         condition: service_healthy
     ports:
     - 8080:8080
     volumes:
     - $PWD/__zitadel:/machinekey:rw,Z
 
-  db-app:
-    image: docker.io/bitnami/postgresql:17.3.0
-    environment:
-      POSTGRES_HOST_AUTH_METHOD: md5
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespw
-      POSTGRES_DB: main
-      POSTGRESQL_WAL_LEVEL: logical
+  edge:
+    # user: "${UID:-1000}"
+    user: 0
+    build:
+      context: "."
+      dockerfile: "./internal/stack/Containerfile"
+    entrypoint:
+    - sh
+    - -c
+    - |
+      ls -la /workspace/zitadel/admin-sa.json && while [ ! -f /workspace/zitadel/admin-sa.json ]; do sleep 1; done
+      update-ca-certificates
+      /edge serve \
+        --envoy-routes /workspace/envoy/routes.yaml \
+        --envoy-http-port=10080 \
+        --envoy-https-port=10443 \
+        --envoy-cert=/etc/envoy/tls.crt \
+        --envoy-key=/etc/envoy/tls.key \
+        --configure-addons=emqx
     ports:
-    - 5432:5432
-    volumes:
-    - db-app:/bitnami/postgresql
+    # - 18000:18000 # xds-server for envoy config
+    - 8081:8081     # http-admin
+    environment:
+      EDGE_DOMAIN_ROOT: ${EDGE_DOMAIN_ROOT}
+      EDGE_IAM_ZITADEL_MACHINEKEYPATH: /workspace/zitadel/admin-sa.json
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [CMD, /edge, healthz]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
+    volumes:
+    - $PWD/__zitadel:/workspace/zitadel:rw,Z,U
+    - $PWD/envoy-routes.yaml:/workspace/envoy/routes.yaml:rw,Z
+    - $PWD/tls.crt:/usr/local/share/ca-certificates/envoy-tls.crt:rw,Z
+    restart: on-failure
 
   envoy:
     user: "${UID:-1000}"
-    image: docker.io/envoyproxy/envoy:contrib-v1.33-latest
-    # command: [envoy, --config-path, /etc/envoy/bootstrap.yaml, --base-id, "1"]   # when used with envoy-controlplane for dynamic config
-    command: [envoy, --config-path, /etc/envoy/config.yaml, --base-id, "1", --disable-hot-restart]
+    image: docker.io/envoyproxy/envoy:contrib-v1.34-latest
+    command: [envoy, --config-path, /etc/envoy/bootstrap.yaml, --base-id, "1"]      # when used with envoy-controlplane for dynamic config
+    # command: [envoy, --config-path, /etc/envoy/config.yaml, --base-id, "1", --disable-hot-restart]
     privileged: true
     ports:
-    # - 9901:9901      # admin
+    - 9901:9901      # admin
     - 80:10080       # http-proxy
     - 443:10443      # https-proxy
     volumes:
-    # - $PWD/internal/stack/envoy/bootstrap.yaml:/etc/envoy/bootstrap.yaml:rw,Z   # when used with envoy-controlplane
-    - $PWD/internal/stack/envoy/config.yaml:/etc/envoy/config.yaml:rw,Z           # hard-coded config
+    - $PWD/internal/stack/envoy/bootstrap.yaml:/etc/envoy/bootstrap.yaml:rw,Z       # when used with envoy-controlplane
+    # - $PWD/internal/stack/envoy/config.yaml:/etc/envoy/config.yaml:rw,Z           # hard-coded config
     - $PWD/tls.crt:/etc/envoy/tls.crt:rw,Z
     - $PWD/tls.key:/etc/envoy/tls.key:rw,Z
+
+  init-db-postgresql:
+    image: docker.io/bitnami/postgresql:17.4.0
+    environment:
+      PGHOST: db-postgresql
+      PGUSER: postgres
+      PGPASSWORD: postgrespw
+      PGDATABASE: main
+    depends_on:
+      db-postgresql:
+        condition: service_healthy
+    entrypoint:
+    - /bin/bash
+    - -c
+    - |
+      echo "Waiting for PostgreSQL to be ready..."
+      until PGPASSWORD=postgrespw psql -h db-postgresql -U postgres -c '\q'; do
+        echo "PostgreSQL is unavailable - sleeping"
+        sleep 2
+      done
+      echo "PostgreSQL is up - executing SQL"
+      psql -c "
+        DO \$\$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pgo') THEN CREATE ROLE pgo WITH LOGIN PASSWORD 'pgopw'; END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'minio') THEN CREATE ROLE minio WITH LOGIN PASSWORD 'miniopw'; END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'emqx') THEN CREATE ROLE emqx WITH LOGIN PASSWORD 'emqxpw'; END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authn') THEN CREATE ROLE authn NOLOGIN; END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
+          GRANT anon TO authn;
+          GRANT authn to pgo;
+        END
+        \$\$;
+
+        CREATE TABLE IF NOT EXISTS public.minioevents (key CHARACTER VARYING PRIMARY KEY);
+        GRANT USAGE ON SCHEMA public to minio;
+        GRANT ALL PRIVILEGES ON TABLE public.minioevents TO minio;
+      "
+    restart: on-failure
 
   pgo-rest:
     image: ghcr.io/edgeflare/pgo
     command: [rest, --config, /rest/config.yaml]
     ports:
-    - 8082:8080
+    - 8001:8001
     volumes:
-    - $PWD/internal/stack/pgo/config.yaml:/rest/config.yaml:rw,Z
+    - $PWD/pgo-config.yaml:/rest/config.yaml:rw,Z
     depends_on:
-      db-app:
+      db-postgresql:
         condition: service_healthy
-      edge:
-        condition: service_healthy
+      # init-db-postgresql:
+      #   condition: service_completed_successfully        # ensure init-db-postgresql finished first
+      # edge:
+      #   condition: service_healthy                       # for OIDC client creation       
     restart: on-failure
 
   pgo-pipeline:
     image: ghcr.io/edgeflare/pgo
     command: [pipeline, --config, /pipeline/config.yaml]
     volumes:
-    - $PWD/internal/stack/pgo/config.yaml:/pipeline/config.yaml:rw,Z
-    depends_on:
-      db-auth:
-        condition: service_healthy
-      db-app:
+    - $PWD/pgo-config.yaml:/pipeline/config.yaml:rw,Z
+    depends_on: # should also wait for zitadel database to be created by zitadel
+      db-postgresql:
         condition: service_healthy
 
   s3-minio:
@@ -133,7 +190,7 @@ services:
       MINIO_IDENTITY_OPENID_COMMENT: "OIDC Identity Provider"
       # notify postgres
       MINIO_NOTIFY_POSTGRES_ENABLE_PRIMARY: on
-      MINIO_NOTIFY_POSTGRES_CONNECTION_STRING_PRIMARY: "host=db-app port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer"
+      MINIO_NOTIFY_POSTGRES_CONNECTION_STRING_PRIMARY: "host=db-postgresql port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer"
       MINIO_NOTIFY_POSTGRES_TABLE_PRIMARY: minioevents
       MINIO_NOTIFY_POSTGRES_FORMAT_PRIMARY: namespace
       MINIO_NOTIFY_POSTGRES_MAX_OPEN_CONNECTIONS_PRIMARY: 2
@@ -146,79 +203,14 @@ services:
     - 9000:9000
     - 9001:9001
     depends_on:
-      db-app:
+      db-postgresql:
         condition: service_healthy
       # iam-zitadel:
       #   condition: service_healthy
-      edge:
-        condition: service_healthy
+      # edge:
+      #   condition: service_healthy
       # should also wait for initdb, zitadel client creation
-
-  init-db-app:
-    image: docker.io/bitnami/postgresql:17.3.0
-    environment:
-      PGHOST: db-app
-      PGUSER: postgres
-      PGPASSWORD: postgrespw
-      PGDATABASE: main
-    depends_on:
-      db-app:
-        condition: service_healthy
-    entrypoint:
-    - /bin/bash
-    - -c
-    - |
-      echo "Waiting for PostgreSQL to be ready..."
-      until PGPASSWORD=postgrespw psql -h db-app -U postgres -c '\q'; do
-        echo "PostgreSQL is unavailable - sleeping"
-        sleep 2
-      done
-      echo "PostgreSQL is up - executing SQL"
-      psql -c "
-        DO \$\$
-        BEGIN
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_roles
-            WHERE rolname = 'pgo'
-          ) THEN
-            CREATE ROLE pgo WITH LOGIN PASSWORD 'pgopw';
-          END IF;
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_roles
-            WHERE rolname = 'authn'
-          ) THEN
-            CREATE ROLE authn NOLOGIN;
-          END IF;
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_roles
-            WHERE rolname = 'anon'
-          ) THEN
-            CREATE ROLE anon NOLOGIN;
-          END IF;
-          GRANT anon TO authn;
-          GRANT authn to pgo;
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_roles
-            WHERE rolname = 'minio'
-          ) THEN
-            CREATE ROLE minio WITH LOGIN PASSWORD 'miniopw';
-          END IF;
-        END
-        \$\$;
-
-        CREATE TABLE IF NOT EXISTS public.minioevents (
-          key CHARACTER VARYING PRIMARY KEY
-        );
-        
-        GRANT USAGE ON SCHEMA public to minio;
-        GRANT ALL PRIVILEGES ON TABLE public.minioevents TO minio;
-      "
-    restart: on-failure
-  emqx:  # MQTT broker. prefer NATS' MQTT
+  mqtt-emqx:  # MQTT broker. prefer NATS' MQTT
     image: docker.io/emqx:5.8
     environment:
       EMQX_DASHBOARD__DEFAULT_PASSWORD: public
@@ -230,45 +222,14 @@ services:
     - 8084:8084   # WSS
     - 18083:18083 # http-dashboard
     volumes:
-    - emqx:/opt/emqx/data
+    - mqtt-emqx:/opt/emqx/data
     healthcheck:
       test: ["CMD", "emqx_ctl", "status"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  edge:
-    user: "${UID:-1000}"
-    build:
-      context: "."
-      dockerfile: "./internal/stack/Containerfile"
-    entrypoint: sh -c "id && ls -la /workspace/zitadel/admin-sa.json && while [ ! -f /workspace/zitadel/admin-sa.json ]; do sleep 1; done; sleep 2; /edge serve  --configure-addons=emqx"
-    # extra comma-separated add-ons eg emqx,nats, ...
-    ports:
-    # - 18000:18000 # xds-server
-    - 8081:8081   # http-admin
-    environment:
-      EDGE_DOMAIN_ROOT: ${EDGE_DOMAIN_ROOT}
-      EDGE_IAM_ZITADEL_MACHINEKEYPATH: "/workspace/zitadel/admin-sa.json"
-    healthcheck:
-      test: [CMD, /edge, healthz]
-      interval: 5s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-      start_interval: 5s
-    volumes:
-    - $PWD/__zitadel:/workspace/zitadel:rw,Z,U
-    restart: on-failure
-
 volumes:
-  db-app:
-  db-auth:
+  db-postgresql:
   s3-minio:
-  emqx:
-
-# MINIO_NOTIFY_POSTGRES_ENABLE: on
-# MINIO_NOTIFY_POSTGRES_CONNECTION_STRING: "host=db-app port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer" 
-# MINIO_NOTIFY_POSTGRES_FORMAT: namespace
-# MINIO_NOTIFY_POSTGRES_ID: minioevents
-# MINIO_NOTIFY_POSTGRES_TABLE: minioevents
+  mqtt-emqx:

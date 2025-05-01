@@ -14,6 +14,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o ed
 
 # runtime image
 FROM docker.io/alpine:3.21
+RUN apk add --no-cache ca-certificates
 RUN adduser -D -h /workspace 1000
 COPY --from=builder /workspace/edge /edge
 USER 1000

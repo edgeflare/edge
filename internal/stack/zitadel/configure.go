@@ -3,6 +3,8 @@ package zitadel
 import (
 	"cmp"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"log"
@@ -20,13 +22,15 @@ import (
 	"github.com/zitadel/zitadel-go/v3/pkg/client/zitadel/app"
 	managementpb "github.com/zitadel/zitadel-go/v3/pkg/client/zitadel/management"
 	"github.com/zitadel/zitadel-go/v3/pkg/client/zitadel/project"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 var (
 	logger  *zap.Logger
-	issuer  = cmp.Or(os.Getenv("EDGE_IAM_ZITADEL_ISSUER"), fmt.Sprintf("http://iam.%s", os.Getenv("EDGE_DOMAIN_ROOT")))
-	api     = cmp.Or(os.Getenv("EDGE_IAM_ZITADEL_API"), fmt.Sprintf("iam.%s:80", os.Getenv("EDGE_DOMAIN_ROOT")))
+	issuer  = cmp.Or(os.Getenv("EDGE_IAM_ZITADEL_ISSUER"), fmt.Sprintf("https://iam.%s", os.Getenv("EDGE_DOMAIN_ROOT")))
+	api     = cmp.Or(os.Getenv("EDGE_IAM_ZITADEL_API"), fmt.Sprintf("iam.%s:443", os.Getenv("EDGE_DOMAIN_ROOT")))
 	keyPath = cmp.Or(os.Getenv("EDGE_IAM_ZITADEL_MACHINEKEYPATH"), "/zitadel/admin-sa.json")
 )
 
@@ -99,55 +103,49 @@ func Configure() {
 
 func createZitadelClient(issuer, api string) (*management.Client, error) {
 	ctx := context.Background()
+
+	systemRoots, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load system root certificates: %w", err)
+	}
+
+	tlsCreds := credentials.NewTLS(&tls.Config{
+		RootCAs:            systemRoots,
+		InsecureSkipVerify: true,
+	})
+
+	dialOpts := []grpc.DialOption{
+		grpc.WithTransportCredentials(tlsCreds),
+	}
+
 	client, err := management.NewClient(
 		ctx,
 		issuer,
 		api,
 		[]string{oidc.ScopeOpenID, zitadel.ScopeZitadelAPI()},
 		zitadel.WithJWTProfileTokenSource(middleware.JWTProfileFromPath(ctx, keyPath)),
-		zitadel.WithInsecure(),
+		zitadel.WithDialOptions(dialOpts...),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create zitadel client: %w", err)
 	}
 
 	return client, nil
-
 	/*
-	   // load self-signed certificate: errors
-	   //
-	   caCert, err := os.ReadFile("gw.tls.crt")
-
-	   	if err != nil {
-	   		return nil, fmt.Errorf("error reading CA certificate: %v", err)
-	   	}
-
-	   // create a certificate pool and add the cert
-	   certPool := x509.NewCertPool()
-
-	   	if ok := certPool.AppendCertsFromPEM(caCert); !ok {
-	   		return nil, fmt.Errorf("failed to append certificate to pool")
-	   	}
-
-	   // create TLS credentials with the custom cert pool
-
-	   	creds := credentials.NewTLS(&tls.Config{
-	   		RootCAs: certPool,
-	   	})
-
-	   // create the client with custom dial options including the TLS credentials
-	   client, err = management.NewClient(
-
-	   	ctx,
-	   	issuer,
-	   	api,
-	   	[]string{oidc.ScopeOpenID, zitadel.ScopeZitadelAPI()},
-	   	zitadel.WithJWTProfileTokenSource(middleware.JWTProfileFromPath(ctx, keyPath)),
-	   	zitadel.WithDialOptions(
-	   		grpc.WithTransportCredentials(creds),
-	   	),
-
-	   )
+		// without TLS
+		ctx := context.Background()
+		client, err := management.NewClient(
+			ctx,
+			issuer,
+			api,
+			[]string{oidc.ScopeOpenID, zitadel.ScopeZitadelAPI()},
+			zitadel.WithJWTProfileTokenSource(middleware.JWTProfileFromPath(ctx, keyPath)),
+			zitadel.WithInsecure(),
+		)
+		if err != nil {
+			return nil, err
+		}
+		return client, nil
 	*/
 }
 
@@ -495,10 +493,6 @@ func ensureMinioClientApp(ctx context.Context, client *management.Client, projec
 		ProjectId: projectID,
 		AppId:     createdMinioApp.AppId,
 	})
-	if err != nil {
-		return nil, err
-	}
-
 	if err != nil {
 		return nil, err
 	}
