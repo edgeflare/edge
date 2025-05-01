@@ -1,37 +1,38 @@
 rest:
-  listenAddr: ":8080"
+  listenAddr: ":8001"
   pg:
-    connString: "host=db-app port=5432 user=pgo password=pgopw dbname=main sslmode=prefer" # container
-    # connString: "host=localhost port=5432 user=pgo password=pgopw dbname=main sslmode=prefer"
+    connString: "host=db-postgresql port=5432 user=pgo password=pgopw dbname=main sslmode=prefer" # container
+    # connString: "host=localhost port=5432 user=pgo password=pgopw dbname=main sslmode=prefer"   # local
   oidc:
-    issuer: http://iam.EDGE_DOMAIN_ROOT
-    clientID: PGO_REST_OIDC_CLIENT_ID
-    clientSecret: PGO_REST_OIDC_CLIENT_SECRET
+    issuer: https://iam.EDGE_DOMAIN_ROOT
+    skipTLSVerify: true                             # for testing only
+    clientID: PGO_REST_OIDC_CLIENT_ID               # manually obtain
+    clientSecret: PGO_REST_OIDC_CLIENT_SECRET       # from zitadel UI
     roleClaimKey: .policy.pgrole
   basicAuth: {}
   anonRole: anon
 
 pipeline:
   peers:
-  - name: db-auth
+  - name: db-postgresql-zitadel
     connector: postgres
     config:
-      connString: "host=db-auth port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer replication=database"
+      connString: "host=db-postgresql port=5432 user=postgres password=postgrespw dbname=zitadel sslmode=prefer replication=database"
       replication:
         tables: ["projections.users14"]
-  - name: db-app
+  - name: db-postgresql-main
     connector: postgres
     config:
-      connString: "host=db-app port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer"
+      connString: "host=db-postgresql port=5432 user=postgres password=postgrespw dbname=main sslmode=prefer"
   - name: debug # logs CDC events to stdout
     connector: debug
   pipelines:
-  - name: sync-users-from-db-auth-to-db-app
+  - name: sync-users-from-zitadel-to-main
     sources:
-    - name: db-auth
+    - name: db-postgresql-zitadel
     sinks:
     - name: debug
-    - name: db-app
+    - name: db-postgresql-main
       transformations:
       - type: filter
         config:

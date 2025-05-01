@@ -1,0 +1,49 @@
+routes:
+  mqtt-emqx:
+    hostnames:
+    - emqx.EDGE_DOMAIN_ROOT
+    - mqtt.EDGE_DOMAIN_ROOT
+    rules:
+    - backendRefs:
+      - host: mqtt-emqx
+        port: 8083
+      matches:
+      - path:
+          type: Prefix
+          value: /mqtt
+    - backendRefs:
+      - host: mqtt-emqx
+        port: 18083
+      matches:
+      - path:
+          type: Prefix
+          value: /
+  iam-zitadel:
+    hostnames:
+    - iam.EDGE_DOMAIN_ROOT
+    rules:
+    - backendRefs:
+      - host: iam-zitadel
+        http2: true
+        port: 8080
+  s3-webui-minio:
+    hostnames:
+    - minio.EDGE_DOMAIN_ROOT
+    rules:
+    - backendRefs:
+      - host: s3-minio
+        port: 9001
+  s3-api-minio:
+    hostnames:
+    - s3.EDGE_DOMAIN_ROOT
+    rules:
+    - backendRefs:
+      - host: s3-minio
+        port: 9000
+  pgo-rest:
+    hostnames:
+    - api.EDGE_DOMAIN_ROOT
+    rules:
+    - backendRefs:
+      - host: pgo-rest
+        port: 8001

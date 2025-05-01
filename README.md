@@ -18,7 +18,7 @@ edge allows (is purposefully designed) to mix-match existing, external (incl pro
 
 ## Deployment options
 
-- A single binary (embeds official component binaries): planned
+- Native: components binaries eg ZITADEL shuold be available on system. If not, edge will try downloading/installing from official releases
 - [Docker compose](./docker-compose.yaml) or Kubernetes resources: follow this README
 - Via a Kubernetes CRD: [Project](./example/project.yaml)
 
@@ -30,8 +30,7 @@ git clone git@github.com:edgeflare/edge.git && cd edge
 
 ### [docker-compose.yaml](./docker-compose.yaml)
 
-1. determine a root domain (hostname) eg `example.org`. if such a globally routable domain isn't available,
-utilize https://sslip.io resolver, which returns embedded IP address in domain name. that's what this demo setup does
+1. determine a root domain (hostname) eg `example.org`. if such an FQDN isn't available, maybe edit `/etc/hosts` or utilize something like https://sslip.io resolver, which returns embedded IP address in domain name. that's what this demo setup does
 
 > when containers dependent on zitadel (it being the centralized IdP) fail, try restarting them once zitadel is healthy
 
@@ -42,8 +41,8 @@ export EDGE_DOMAIN_ROOT=192-168-0-121.sslip.io              # resolves to 192.16
 2. generate `envoy/config.yaml` and `pgo/config.yaml`
 
 ```sh
-sed  "s/EDGE_DOMAIN_ROOT/${EDGE_DOMAIN_ROOT}/g" internal/stack/envoy/config.template.yaml > internal/stack/envoy/config.yaml
-sed  "s/EDGE_DOMAIN_ROOT/${EDGE_DOMAIN_ROOT}/g" internal/stack/pgo/config.template.yaml > internal/stack/pgo/config.yaml
+sed  "s/EDGE_DOMAIN_ROOT/${EDGE_DOMAIN_ROOT}/g" internal/stack/envoy/routes.template.yaml > envoy-routes.yaml
+sed  "s/EDGE_DOMAIN_ROOT/${EDGE_DOMAIN_ROOT}/g" internal/stack/pgo/config.template.yaml > pgo-config.yaml
 ```
 
 3. ensure zitadel container can write admin service account key which edge uses to configure zitadel
@@ -65,8 +64,7 @@ chmod 666 tls.crt
 chmod 666 tls.key
 ```
 
-envoy needs TLS config for end-to-end (even non-TLS) HTTP/2 required by zitadel management API. zitadel API bugs with self-signed certificates.
-For publicly trusted certificates, enable TLS by updating env vars in ZITADEL.
+Clients connecting to HTTPS endpoints secured with self-signed certificates must trust the certifactes or CA. See [internal/stack/envoy/develop.md](internal/stack/envoy/develop.md) if tinkering locally.
 
 5. start containers
 ```sh
@@ -74,7 +72,7 @@ For publicly trusted certificates, enable TLS by updating env vars in ZITADEL.
 docker compose up -d
 ```
 
-Check zitadel health with `curl http://iam.${EDGE_DOMAIN_ROOT}/debug/healthz` or `docker exec -it edge_edge_1 /edge healthz`
+Check zitadel health with `curl https://iam.${EDGE_DOMAIN_ROOT}/debug/healthz -k` or `docker exec -it edge_edge_1 /edge healthz`
 
 #### Use the centralized IdP for authorization in Postgres via `pgo rest` (PostgREST API) as well as minio-s3, NATS etc
 
@@ -83,7 +81,7 @@ The idea is to use `edge` to serve config for each component, much like envoy co
 
 For now, visit ZITADEL UI at http://iam.${EDGE_DOMAIN_ROOT}, login (see docker-compose.yaml) and regenerate client-secrets for oauth2-proxy and minio clients in edge project. Then
 
-- update `internal/stack/pgo/config.yaml` with the values
+- update `pgo-config.yaml` with the values
 - update relevant env vars in minio container
 
 And `docker compose down && docker compose up -d`
@@ -112,7 +110,7 @@ GRANT ALL ON iam.users to anon;
 Now we can GET, POST, PATCH, DELETE on the users table in iam schema like:
 
 ```sh
-curl http://api.${EDGE_DOMAIN_ROOT}/iam/users
+curl https://api.${EDGE_DOMAIN_ROOT}/iam/users -k
 ```
 
 ##### `pgo pipeline`: Debezium-compatible CDC for realtime-event/replication etc

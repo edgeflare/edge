@@ -20,13 +20,13 @@ type EMQXClient struct {
 }
 
 var (
-	url               = cmp.Or(os.Getenv("EDGE_EMQX_HTTP_API"), fmt.Sprintf("http://emqx-%s:18083/api/v5", os.Getenv("EDGE_DOMAIN_ROOT")), "http://emqx:18083/api/v5")
+	url               = cmp.Or(os.Getenv("EDGE_EMQX_HTTP_API"), fmt.Sprintf("http://emqx.%s/api/v5", os.Getenv("EDGE_DOMAIN_ROOT")), "http://mqtt-emqx:18083/api/v5")
 	pgPassword        = cmp.Or(os.Getenv("EDGE_EMQX_PGPASSWORD"), "")
 	pgUser            = cmp.Or(os.Getenv("EDGE_EMQX_PGUSER"), "emqx")
 	dashboardPassword = cmp.Or(os.Getenv("EMQX_DASHBOARD__DEFAULT_PASSWORD"), "public")
 	dashboardUsername = cmp.Or(os.Getenv("EMQX_DASHBOARD__DEFAULT_USERNAME"), "admin")
 	edgeMqttPassword  = cmp.Or(os.Getenv("EDGE_MQTT_PASSWORD"), "")
-	idPJwksEndpoint   = cmp.Or(os.Getenv("EDGE_IAM_ISSUER_JWKS_ENDPOINT"), fmt.Sprintf("http://iam.%s/oauth/v2/keys", os.Getenv("EDGE_DOMAIN_ROOT")))
+	idPJwksEndpoint   = cmp.Or(os.Getenv("EDGE_IAM_ISSUER_JWKS_ENDPOINT"), fmt.Sprintf("https://iam.%s/oauth/v2/keys", os.Getenv("EDGE_DOMAIN_ROOT")))
 )
 
 // NewEMQXClient initializes a new EMQX client

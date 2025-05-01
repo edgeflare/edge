@@ -1,7 +1,8 @@
 node:
-  id: "localhost"
+  id: "envoy-node"
   cluster: "default_cluster"
 admin:
+  access_log_path: "/tmp/admin_access.log"
   address:
     socket_address:
       address: 0.0.0.0
