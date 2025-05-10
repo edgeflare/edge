@@ -5,7 +5,7 @@ edge configures and manages:
 | Component         | Technology / Tool       | Description |
 |-------------------|-----------------------|-------------|
 | Database          | [PostgreSQL](https://www.postgresql.org) + [pgvector](https://github.com/pgvector/pgvector)  | The world's most advanced open source database. Vector search using pgvector |
-| (IAM) AuthN/AuthZ | Any OIDC compliant IdP eg [Keycloak](https://www.keycloak.org), Auth0, [ZITADEL](https://github.com/zitadel/zitadel) (default) + [Postgres RLS](https://www.postgresql.org/docs/current/ddl-rowsecurity.html) | Comprehensive authN and authZ through OIDC claims, PostgreSQL Row-Level Security and envoy filters eg ext-authz |
+| (IAM) AuthN/AuthZ | Any OIDC compliant IdP eg [Keycloak](https://www.keycloak.org), Auth0, [ZITADEL](https://github.com/zitadel/zitadel), [dexidp/dex](https://github.com/dexidp/dex) (default) + [Postgres RLS](https://www.postgresql.org/docs/current/ddl-rowsecurity.html) | Comprehensive authN and authZ through OIDC claims, PostgreSQL Row-Level Security and envoy filters eg ext-authz |
 | Object Storage    | Any S3 compliant storage eg AWS S3, Cloudflare R2, [MinIO](https://github.com/minio/minio), Ceph RGW, [SeaweedFS](https://github.com/seaweedfs/seaweedfs) (default)                 | Offers high-performance, Kubernetes-native object storage. |
 | REST API / Events | [edgeflare/pgo](https://github.com/edgeflare/pgo) | PostgREST-compatible REST API, Debezium-compatible CDC |
 | API Gateway       | [Istio](https://istio.io)/[Envoy](https://www.envoyproxy.io), [cert-manager](https://cert-manager.io) and optionally [Cloudflare](https://cloudflare.com)         | Manages, secures, and monitors traffic between microservices as well as from and to the Internet |

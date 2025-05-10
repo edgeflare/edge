@@ -5,12 +5,16 @@ rest:
     # connString: "host=localhost port=5432 user=pgo password=pgopw dbname=main sslmode=prefer"   # local
   oidc:
     issuer: https://iam.EDGE_DOMAIN_ROOT
+    # issuer: http://127.0.0.1:5556/dex
     skipTLSVerify: true                             # for testing only
     clientID: PGO_REST_OIDC_CLIENT_ID               # manually obtain
     clientSecret: PGO_REST_OIDC_CLIENT_SECRET       # from zitadel UI
+    # clientID: oauth2-proxy
+    # clientSecret: ZXhhbXBsZS1hcHAtc2VjcmV0
     roleClaimKey: .policy.pgrole
   basicAuth: {}
   anonRole: anon
+  omitempty: true  # omits NULL values in JSON response
 
 pipeline:
   peers:

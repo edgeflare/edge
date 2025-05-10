@@ -16,8 +16,19 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  
+  iam-dex: # Default IdP
+    image: docker.io/edgeflare/dex
+    restart: always
+    command: 'dex serve /config.yaml'
+    environment:
+      DEX_CUSTOM_CLAIMS_STATIC: '{"policy": {"pgrole": "authn"}, "exampleclaim": "value"}'
+    ports:
+    - 5556:5556
+    volumes:
+    - $PWD/internal/stack/dex/config.yaml:/config.yaml:rw,Z
 
-  iam-zitadel:
+  iam-zitadel: # example demoing use of any OIDC IdP
     user: "${UID:-1000}"
     restart: always
     image: ghcr.io/zitadel/zitadel:latest
@@ -228,6 +239,17 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # oauth2-proxy:
+  #   container_name: oauth2-proxy
+  #   image: quay.io/oauth2-proxy/oauth2-proxy
+  #   command: --config /oauth2-proxy.cfg
+  #   hostname: oauth2-proxy
+  #   volumes:
+  #   - $PWD/internal/stack/oauth2-proxy/oauth2-proxy.cfg:/oauth2-proxy.cfg:rw,Z
+  #   restart: always
+  #   ports:
+  #   - 4180:4180/tcp
 
 volumes:
   db-postgresql:
